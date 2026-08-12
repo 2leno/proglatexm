@@ -1,0 +1,18 @@
+aws:
+  region: eu-west-3
+  s3:
+    bucket: proglatexm-bucket
+    endpoint: ""
+  sqs:
+    endpoint: ""
+    queue:
+      url: ""
+  eventBridge:
+    bus: default
+    endpoint: ""
+
+app:
+  security:
+    jwt:
+      secret: "exam-secret-exam-secret-exam-secret-exam-secret"
+      expiration-minutes: 60

@@ -1,10 +1,13 @@
 package api.poja.app.file.bucket;
 
 import api.poja.app.PojaGenerated;
+import java.net.URI;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -22,14 +25,33 @@ public class BucketConf {
 
   @SneakyThrows
   public BucketConf(
-      @Value("eu-west-3") String regionString, @Value("${aws.s3.bucket}") String bucketName) {
+      @Value("${aws.region:eu-west-3}") String regionString,
+      @Value("${aws.s3.bucket}") String bucketName,
+      @Value("${aws.s3.endpoint:}") String endpointString) {
     this.bucketName = bucketName;
     var region = Region.of(regionString);
+    var endpoint = endpointString.isEmpty() ? null : URI.create(endpointString);
+    var credentialsProvider =
+        endpoint == null
+            ? null
+            : StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test"));
+    var s3AsyncClientBuilder = S3AsyncClient.crtBuilder().region(region);
+    var s3ClientBuilder = S3Client.builder().region(region);
+    var s3PresignerBuilder = S3Presigner.builder().region(region);
+    if (endpoint != null) {
+      s3AsyncClientBuilder
+          .endpointOverride(endpoint)
+          .credentialsProvider(credentialsProvider)
+          .forcePathStyle(true);
+      s3ClientBuilder
+          .endpointOverride(endpoint)
+          .credentialsProvider(credentialsProvider)
+          .forcePathStyle(true);
+      s3PresignerBuilder.endpointOverride(endpoint).credentialsProvider(credentialsProvider);
+    }
     this.s3TransferManager =
-        S3TransferManager.builder()
-            .s3Client(S3AsyncClient.crtBuilder().region(region).build())
-            .build();
-    this.s3Presigner = S3Presigner.builder().region(region).build();
-    this.s3Client = S3Client.builder().region(region).build();
+        S3TransferManager.builder().s3Client(s3AsyncClientBuilder.build()).build();
+    this.s3Presigner = s3PresignerBuilder.build();
+    this.s3Client = s3ClientBuilder.build();
   }
 }

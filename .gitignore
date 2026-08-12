@@ -36,6 +36,13 @@ out/
 ### VS Code ###
 .vscode/
 
+### Secrets ###
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
 .aws-sam
 **.toml
 

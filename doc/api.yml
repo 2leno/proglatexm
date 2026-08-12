@@ -1,0 +1,71 @@
+openapi: 3.0.3
+info:
+  title: proglatexm API
+  version: 1.0.0
+  description: Spring Boot + AWS (S3, SQS, EventBridge) + Spring Security (JWT/RBAC) base application.
+  contact:
+    name: proglatexm team
+
+servers:
+  - url: http://localhost:8080
+  - url: https://api.example.com
+
+tags:
+  - name: health
+    description: Public endpoints
+  - name: hello
+    description: Async event endpoints
+
+paths:
+  /ping:
+    get:
+      tags: [health]
+      summary: Liveness check
+      operationId: ping
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
+
+  /health/bucket:
+    get:
+      tags: [health]
+      summary: S3 upload/download/presign sanity check
+      operationId: healthBucket
+      responses:
+        '200':
+          description: Presigned URL of the uploaded file
+          content:
+            text/plain:
+              schema:
+                type: string
+                format: uri
+
+  /hello:
+    get:
+      tags: [hello]
+      summary: Produces an async event
+      operationId: hello
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Event produced
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "... world!"
+        '401':
+          description: Missing or invalid JWT
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

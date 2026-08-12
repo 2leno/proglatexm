@@ -40,8 +40,17 @@ configurations {
 
 
 test {
-    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+    maxParallelForks = Os.isFamily(Os.FAMILY_WINDOWS)
+        ? 1
+        : (Runtime.runtime.availableProcessors().intdiv(2) ?: 1)
     useJUnitPlatform()
+    filter {
+        includeTestsMatching "*IT"
+        includeTestsMatching "*Test"
+    }
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        environment "PATH", System.getenv("PATH").split(";").findAll { !it.trim().startsWith('"') }.join(";")
+    }
     finalizedBy jacocoTestCoverageVerification
 }
 
@@ -110,6 +119,7 @@ jacocoTestReport {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web:3.2.2'
+    implementation 'org.springframework.boot:spring-boot-starter-security:3.2.2'
     testImplementation 'org.testcontainers:testcontainers:2.0.2'
 
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.3'
@@ -124,15 +134,15 @@ dependencies {
     implementation 'software.amazon.awssdk:s3:2.21.40'
     implementation 'software.amazon.awssdk:s3-transfer-manager:2.21.40'
     implementation 'software.amazon.awssdk.crt:aws-crt:0.28.12'
-    implementation 'software.amazon.awssdk:ses:2.21.40'
     implementation 'software.amazon.awssdk:core:2.21.40'
 
-    implementation 'jakarta.mail:jakarta.mail-api:2.1.2'
-    implementation 'jakarta.activation:jakarta.activation-api:2.1.2'
-    implementation 'com.sun.mail:jakarta.mail:2.0.1'
-    implementation 'com.sun.activation:jakarta.activation:2.0.1'
-
     implementation 'org.apache.tika:tika-core:2.9.1'
+
+    implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+
+    implementation 'org.apache.commons:commons-lang3:3.18.0'
 
     implementation 'org.reflections:reflections:0.10.2'
 
@@ -145,7 +155,9 @@ dependencies {
     implementation 'io.swagger:swagger-annotations:1.6.12'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.2'
+    testImplementation 'org.springframework.security:spring-security-test:6.2.2'
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter:2.0.2'
+    testImplementation 'org.testcontainers:testcontainers-localstack:2.0.2'
     testImplementation 'org.junit-pioneer:junit-pioneer:2.2.0'
 
 

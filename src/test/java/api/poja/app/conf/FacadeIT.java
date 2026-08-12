@@ -2,14 +2,12 @@ package api.poja.app.conf;
 
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
-import api.poja.app.PojaGenerated;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-@PojaGenerated
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @Slf4j
 public class FacadeIT {
@@ -17,10 +15,7 @@ public class FacadeIT {
   @SneakyThrows
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {
-
-    new EventConf().configureProperties(registry);
-    new BucketConf().configureProperties(registry);
-    new EmailConf().configureProperties(registry);
+    new LocalStackConf().configureProperties(registry);
 
     try {
       var envConfClazz = Class.forName("api.poja.app.conf.EnvConf");
