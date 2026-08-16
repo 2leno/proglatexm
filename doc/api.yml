@@ -1,67 +1,627 @@
 openapi: 3.0.3
 info:
   title: proglatexm API
-  version: 1.0.0
-  description: Spring Boot + AWS (S3, SQS, EventBridge) + Spring Security (JWT/RBAC) base application.
-  contact:
-    name: proglatexm team
-
+  description: >
+    Academic management API for HEI: generating and sending grade transcripts (PDF),
+    generating the graduates list (Excel), managing courses, groups, historized grades,
+    and the Thymeleaf interface for browsing promotions.
+  version: "1.0.0"
 servers:
-  - url: http://localhost:8080
-  - url: https://api.example.com
+  - url: /api
 
 tags:
-  - name: health
-    description: Public endpoints
-  - name: hello
-    description: Async event endpoints
+  - name: Auth
+  - name: Transcripts
+    description: Grade transcripts (PDF by email)
+  - name: Graduates
+    description: Graduates list (Excel)
+  - name: Promotions
+    description: Thymeleaf interface
+  - name: Courses
+  - name: Groups
+  - name: Grades
+  - name: Students
 
 paths:
-  /ping:
-    get:
-      tags: [health]
-      summary: Liveness check
-      operationId: ping
-      responses:
-        '200':
-          description: OK
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: pong
 
-  /health/bucket:
-    get:
-      tags: [health]
-      summary: S3 upload/download/presign sanity check
-      operationId: healthBucket
+  # ---------- AUTH ----------
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate and obtain a token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                  format: password
       responses:
-        '200':
-          description: Presigned URL of the uploaded file
+        "200":
+          description: Authentication successful
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                format: uri
+                type: object
+                properties:
+                  token:
+                    type: string
+                  role:
+                    $ref: "#/components/schemas/Role"
+        "401":
+          description: Invalid credentials
 
-  /hello:
-    get:
-      tags: [hello]
-      summary: Produces an async event
-      operationId: hello
+  # ---------- TRANSCRIPTS ----------
+  /students/{studentId}/transcripts/generate:
+    post:
+      tags: [Transcripts]
+      summary: Generate the grade transcript PDF (partial or complete) and store it on S3
       security:
-        - bearerAuth: []
+        - bearerAuth: [ADMIN, TEACHER, STUDENT]
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+        - $ref: "#/components/parameters/Year"
       responses:
-        '200':
-          description: Event produced
+        "202":
+          description: Generation accepted (may be processed asynchronously)
           content:
-            text/plain:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptStatus"
+        "403":
+          description: Access denied (a student may only generate their own transcript)
+        "404":
+          description: Student not found
+
+  /students/{studentId}/transcripts/send:
+    post:
+      tags: [Transcripts]
+      summary: Send the already-generated transcript by email (asynchronous)
+      security:
+        - bearerAuth: [ADMIN]
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+        - $ref: "#/components/parameters/Year"
+      responses:
+        "202":
+          description: Send queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptStatus"
+        "404":
+          description: Transcript not found for this year
+
+  /promotions/{promotionId}/transcripts/send-all:
+    post:
+      tags: [Transcripts]
+      summary: Bulk-send (asynchronously) transcripts for every student in a promotion
+      security:
+        - bearerAuth: [ADMIN]
+      parameters:
+        - $ref: "#/components/parameters/PromotionId"
+        - $ref: "#/components/parameters/Year"
+      responses:
+        "202":
+          description: Sends queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batchId:
+                    type: string
+                    format: uuid
+                  studentsQueued:
+                    type: integer
+
+  /students/{studentId}/transcripts/{year}:
+    get:
+      tags: [Transcripts]
+      summary: Retrieve/download the already-generated transcript PDF
+      security:
+        - bearerAuth: [ADMIN, STUDENT]
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: PDF file or signed S3 URL
+          content:
+            application/pdf:
               schema:
                 type: string
-                example: "... world!"
-        '401':
-          description: Missing or invalid JWT
+                format: binary
+            application/json:
+              schema:
+                type: object
+                properties:
+                  downloadUrl:
+                    type: string
+                    format: uri
+        "403":
+          description: Access denied
+        "404":
+          description: Transcript not found
+
+  /students/{studentId}/transcripts/{year}/status:
+    get:
+      tags: [Transcripts]
+      summary: Current generation/send status of the transcript
+      security:
+        - bearerAuth: [ADMIN, STUDENT]
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Current status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptStatus"
+
+  # ---------- GRADUATES ----------
+  /promotions/{promotionId}/graduates/generate:
+    post:
+      tags: [Graduates]
+      summary: Compute the promotion's graduates and generate the Excel file on S3
+      security:
+        - bearerAuth: [ADMIN]
+      parameters:
+        - $ref: "#/components/parameters/PromotionId"
+      responses:
+        "202":
+          description: Generation started
+        "200":
+          description: File generated immediately
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fileKey:
+                    type: string
+                  graduatesCount:
+                    type: integer
+
+  /promotions/{promotionId}/graduates/download:
+    get:
+      tags: [Graduates]
+      summary: Directly download the promotion's graduates Excel file from S3
+      security:
+        - bearerAuth: [ADMIN]
+      parameters:
+        - $ref: "#/components/parameters/PromotionId"
+      responses:
+        "200":
+          description: .xlsx file
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: No file generated yet for this promotion
+
+  /promotions/{promotionId}/graduates:
+    get:
+      tags: [Graduates]
+      summary: JSON list of graduates (preview before download)
+      security:
+        - bearerAuth: [ADMIN]
+      parameters:
+        - $ref: "#/components/parameters/PromotionId"
+      responses:
+        "200":
+          description: List sorted by rank
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Graduate"
+
+  # ---------- COURSES ----------
+  /courses:
+    get:
+      tags: [Courses]
+      summary: List courses, filterable by track
+      security:
+        - bearerAuth: [ADMIN, TEACHER, STUDENT]
+      parameters:
+        - name: parcours
+          in: query
+          schema:
+            $ref: "#/components/schemas/Parcours"
+      responses:
+        "200":
+          description: List of courses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+    post:
+      tags: [Courses]
+      summary: Create a course
+      security:
+        - bearerAuth: [ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourseInput"
+      responses:
+        "201":
+          description: Course created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+
+  /courses/{courseId}:
+    put:
+      tags: [Courses]
+      summary: Update a course
+      security:
+        - bearerAuth: [ADMIN]
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourseInput"
+      responses:
+        "200":
+          description: Course updated
+
+  /courses/{courseId}/exams:
+    get:
+      tags: [Courses]
+      summary: List a course's exams
+      security:
+        - bearerAuth: [ADMIN, TEACHER, STUDENT]
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      responses:
+        "200":
+          description: List of exams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exam"
+    post:
+      tags: [Courses]
+      summary: Add an exam to a course (the sum of a course's coefficients must equal 1)
+      security:
+        - bearerAuth: [ADMIN, TEACHER]
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExamInput"
+      responses:
+        "201":
+          description: Exam created
+        "409":
+          description: The sum of coefficients would exceed 1
+
+  /courses/{courseId}/teachers:
+    put:
+      tags: [Courses]
+      summary: Assign one or more teachers to a course
+      security:
+        - bearerAuth: [ADMIN]
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                teacherIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        "200":
+          description: Teachers assigned
+
+  # ---------- GROUPS ----------
+  /groups:
+    get:
+      tags: [Groups]
+      summary: List all groups (K1, K2, K3...)
+      security:
+        - bearerAuth: [ADMIN, TEACHER]
+      responses:
+        "200":
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+    post:
+      tags: [Groups]
+      summary: Create a group
+      security:
+        - bearerAuth: [ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupInput"
+      responses:
+        "201":
+          description: Group created
+
+  /students/{studentId}/groups:
+    post:
+      tags: [Groups]
+      summary: Assign a student to a group, with an effective date
+      security:
+        - bearerAuth: [ADMIN]
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [groupId, effectiveDate]
+              properties:
+                groupId:
+                  type: string
+                  format: uuid
+                effectiveDate:
+                  type: string
+                  format: date
+      responses:
+        "201":
+          description: Assignment recorded
+
+  /students/{studentId}/groups/history:
+    get:
+      tags: [Groups]
+      summary: History of a student's successive groups
+      security:
+        - bearerAuth: [ADMIN, STUDENT]
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200":
+          description: Group history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StudentGroupPeriod"
+
+  # ---------- GRADES ----------
+  /courses/{courseId}/exams/{examId}/grades:
+    post:
+      tags: [Grades]
+      summary: Record a student's grade for an exam (creates a historized entry)
+      security:
+        - bearerAuth: [ADMIN, TEACHER]
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - name: examId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, value]
+              properties:
+                studentId:
+                  type: string
+                  format: uuid
+                value:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 20
+      responses:
+        "201":
+          description: Grade recorded
+        "403":
+          description: A teacher may only grade their own courses
+
+  /students/{studentId}/grades:
+    get:
+      tags: [Grades]
+      summary: A student's current grades, aggregated across all their successive groups
+      security:
+        - bearerAuth: [ADMIN, TEACHER, STUDENT]
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+        - name: courseId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of current grades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Grade"
+
+  /students/{studentId}/grades/{gradeId}/history:
+    get:
+      tags: [Grades]
+      summary: Full modification history of a grade (claims/appeals)
+      security:
+        - bearerAuth: [ADMIN, TEACHER, STUDENT]
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+        - name: gradeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Grade history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GradeHistoryEntry"
+
+  /grades/{gradeId}:
+    put:
+      tags: [Grades]
+      summary: Modify a grade following a claim (creates a new historized version)
+      security:
+        - bearerAuth: [ADMIN, TEACHER]
+      parameters:
+        - name: gradeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newValue, reason]
+              properties:
+                newValue:
+                  type: number
+                  format: float
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: New grade version created
+        "403":
+          description: A teacher may only modify their own courses
+
+  # ---------- STUDENTS ----------
+  /students:
+    post:
+      tags: [Students]
+      summary: Create a student
+      security:
+        - bearerAuth: [ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentInput"
+      responses:
+        "201":
+          description: Student created
+
+  /students/{studentId}/average:
+    get:
+      tags: [Students]
+      summary: A student's annual average
+      security:
+        - bearerAuth: [ADMIN, TEACHER, STUDENT]
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+        - $ref: "#/components/parameters/Year"
+      responses:
+        "200":
+          description: Annual average
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  year:
+                    type: integer
+                  average:
+                    type: number
+                  credits:
+                    type: integer
+
+  /students/{studentId}/average/global:
+    get:
+      tags: [Students]
+      summary: Overall average across the 3-year program
+      security:
+        - bearerAuth: [ADMIN, TEACHER, STUDENT]
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200":
+          description: Overall average
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  average:
+                    type: number
+
+  # ---------- PROMOTIONS (Thymeleaf) ----------
+  /promotions:
+    get:
+      tags: [Promotions]
+      summary: List all promotions (Thymeleaf view)
+      security:
+        - bearerAuth: [ADMIN]
+      responses:
+        "200":
+          description: List of promotions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Promotion"
 
 components:
   securitySchemes:
@@ -69,3 +629,230 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  parameters:
+    StudentId:
+      name: studentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PromotionId:
+      name: promotionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CourseId:
+      name: courseId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Year:
+      name: year
+      in: query
+      required: true
+      schema:
+        type: integer
+        example: 2026
+
+  schemas:
+    Role:
+      type: string
+      enum: [ADMIN, TEACHER, STUDENT]
+
+    Parcours:
+      type: string
+      enum: [EL, TN]
+      description: Academic track (EL = Software Ecosystem, TN = Digital Transformation)
+
+    TranscriptStatus:
+      type: object
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        year:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, GENERATED, SENT, FAILED]
+        s3Key:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    Graduate:
+      type: object
+      properties:
+        rank:
+          type: integer
+        studentCode:
+          type: string
+          description: Student's STD identifier
+        lastName:
+          type: string
+        firstName:
+          type: string
+        generalAverage:
+          type: number
+          format: float
+
+    Course:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+          example: PRO1
+        title:
+          type: string
+          example: Object-Oriented Programming
+        credits:
+          type: integer
+        parcours:
+          $ref: "#/components/schemas/Parcours"
+        teacherIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    CourseInput:
+      type: object
+      required: [reference, title, credits, parcours]
+      properties:
+        reference:
+          type: string
+        title:
+          type: string
+        credits:
+          type: integer
+        parcours:
+          $ref: "#/components/schemas/Parcours"
+
+    Exam:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        coefficient:
+          type: number
+          format: float
+          description: Coefficient as a fraction, e.g. 0.25 for 1/4
+
+    ExamInput:
+      type: object
+      required: [name, coefficient]
+      properties:
+        name:
+          type: string
+        coefficient:
+          type: number
+          format: float
+
+    Group:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          example: K3
+        promotionId:
+          type: string
+          format: uuid
+
+    GroupInput:
+      type: object
+      required: [code, promotionId]
+      properties:
+        code:
+          type: string
+        promotionId:
+          type: string
+          format: uuid
+
+    StudentGroupPeriod:
+      type: object
+      properties:
+        groupCode:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          nullable: true
+
+    Grade:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        courseId:
+          type: string
+          format: uuid
+        examId:
+          type: string
+          format: uuid
+        value:
+          type: number
+          format: float
+        current:
+          type: boolean
+
+    GradeHistoryEntry:
+      type: object
+      properties:
+        value:
+          type: number
+          format: float
+        reason:
+          type: string
+        modifiedBy:
+          type: string
+        modifiedAt:
+          type: string
+          format: date-time
+
+    StudentInput:
+      type: object
+      required: [firstName, lastName, studentCode, parcours]
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        studentCode:
+          type: string
+        parcours:
+          $ref: "#/components/schemas/Parcours"
+
+    Promotion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Promotion 2026"
+        year:
+          type: integer
+
+security:
+  - bearerAuth: []
