@@ -5,7 +5,6 @@ import api.poja.app.datastructure.ListGrouper;
 import api.poja.app.endpoint.event.model.PojaEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -15,11 +14,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
-import software.amazon.awssdk.services.eventbridge.EventBridgeClientBuilder;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
@@ -116,25 +112,14 @@ public class EventProducer<T extends PojaEvent> implements Consumer<Collection<T
   public static class Conf {
     public static final int MAX_PUT_EVENT_ENTRIES = 10;
     private final Region region;
-    private final String eventBridgeEndpoint;
 
-    public Conf(
-        @Value("${aws.region:eu-west-3}") String region,
-        @Value("${aws.eventBridge.endpoint:}") String eventBridgeEndpoint) {
+    public Conf(@Value("eu-west-3") String region) {
       this.region = Region.of(region);
-      this.eventBridgeEndpoint = eventBridgeEndpoint;
     }
 
     @Bean
     public EventBridgeClient getEventBridgeClient() {
-      EventBridgeClientBuilder builder = EventBridgeClient.builder().region(region);
-      if (eventBridgeEndpoint != null && !eventBridgeEndpoint.isEmpty()) {
-        builder
-            .endpointOverride(URI.create(eventBridgeEndpoint))
-            .credentialsProvider(
-                StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test")));
-      }
-      return builder.build();
+      return EventBridgeClient.builder().region(region).build();
     }
   }
 }
