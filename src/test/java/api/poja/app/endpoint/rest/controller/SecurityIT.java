@@ -3,10 +3,12 @@ package api.poja.app.endpoint.rest.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import api.poja.app.conf.FacadeIT;
+import api.poja.app.endpoint.event.EventProducer;
 import api.poja.app.security.JwtTokenProvider;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 class SecurityIT extends FacadeIT {
+
+  @MockBean EventProducer eventProducer;
 
   @Autowired TestRestTemplate restTemplate;
   @Autowired JwtTokenProvider jwtTokenProvider;
