@@ -185,6 +185,29 @@ class SecurityIT extends FacadeIT {
             .getStatusCode());
   }
 
+  @Test
+  void recordGrade_asStudent_returnsForbidden() {
+    assertEquals(
+        HttpStatus.FORBIDDEN,
+        exchangeWithBearer(token("STUDENT"), "/courses/1/exams/1/grades", HttpMethod.POST)
+            .getStatusCode());
+  }
+
+  @Test
+  void modifyGrade_asStudent_returnsForbidden() {
+    assertEquals(
+        HttpStatus.FORBIDDEN,
+        exchangeWithBearer(token("STUDENT"), "/grades/1", HttpMethod.PUT).getStatusCode());
+  }
+
+  @Test
+  void studentGrades_asTeacher_isAuthorized() {
+    var status =
+        exchangeWithBearer(token("TEACHER"), "/students/1/grades", HttpMethod.GET).getStatusCode();
+    assertNotEquals(HttpStatus.FORBIDDEN, status);
+    assertNotEquals(HttpStatus.UNAUTHORIZED, status);
+  }
+
   private String token(String role) {
     return jwtTokenProvider.generateToken("user", List.of(role));
   }
