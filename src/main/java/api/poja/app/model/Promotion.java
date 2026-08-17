@@ -1,6 +1,7 @@
 package api.poja.app.model;
 
+import java.util.UUID;
 import lombok.Builder;
 
 @Builder
-public record Promotion(String id, String name, Integer year) {}
+public record Promotion(UUID id, String name, Integer year) {}
