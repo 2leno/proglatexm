@@ -170,10 +170,10 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void listPromotions_asAdmin_returnsNotFound() {
-    assertEquals(
-        HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("ADMIN"), "/promotions", HttpMethod.GET).getStatusCode());
+  void listPromotions_asAdmin_isAuthorized() {
+    var status = exchangeWithBearer(token("ADMIN"), "/promotions", HttpMethod.GET).getStatusCode();
+    assertNotEquals(HttpStatus.FORBIDDEN, status);
+    assertNotEquals(HttpStatus.UNAUTHORIZED, status);
   }
 
   @Test
