@@ -39,5 +39,8 @@ out/
 .aws-sam
 **.toml
 
+### Secrets ###
+secrets/
+
 ### Mac OS ###
 .DS_Store
