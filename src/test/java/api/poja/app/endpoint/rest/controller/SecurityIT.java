@@ -91,10 +91,19 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void groupHistory_asStudent_returnsNotFound() {
-    assertEquals(
-        HttpStatus.NOT_FOUND,
+  void groupHistory_asStudent_isAuthorized() {
+    var status =
         exchangeWithBearer(token("STUDENT"), "/students/1/groups/history", HttpMethod.GET)
+            .getStatusCode();
+    assertNotEquals(HttpStatus.FORBIDDEN, status);
+    assertNotEquals(HttpStatus.UNAUTHORIZED, status);
+  }
+
+  @Test
+  void assignGroup_asTeacher_returnsForbidden() {
+    assertEquals(
+        HttpStatus.FORBIDDEN,
+        exchangeWithBearer(token("TEACHER"), "/students/1/groups", HttpMethod.POST)
             .getStatusCode());
   }
 
