@@ -50,10 +50,10 @@ class GradesIT extends FacadeIT {
 
   @Test
   void recordGrade_asAdmin_returnsCreatedAndPersists() {
-    var student = saveStudent("grade-admin-student");
+    var student = saveStudent("gr-admin-student");
     var exam = saveExam(saveCourse("grade-admin-course"));
 
-    var response = recordGrade(token("ADMIN"), exam.getId(), gradeBody(student.getId(), 15.0));
+    var response = recordGrade(token("ADMIN"), exam, gradeBody(student.getId(), 15.0));
 
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     assertEquals(15.0, (Double) response.getBody().get("value"));
@@ -68,58 +68,54 @@ class GradesIT extends FacadeIT {
 
   @Test
   void recordGrade_asCourseTeacher_returnsCreated() {
-    var teacher = saveTeacher("grade-owner-teacher");
+    var teacher = saveTeacher("gr-course-teacher");
     var course = saveCourse("grade-owner-course");
     course.getTeachers().add(teacher);
     courseRepository.save(course);
-    var student = saveStudent("grade-owner-student");
+    var student = saveStudent("gr-owner-student");
     var exam = saveExam(course);
 
     var response =
-        recordGrade(
-            token("grade-owner-teacher", "TEACHER"),
-            exam.getId(),
-            gradeBody(student.getId(), 12.0));
+        recordGrade(token("gr-course-teacher", "TEACHER"), exam, gradeBody(student.getId(), 12.0));
 
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
   }
 
   @Test
   void recordGrade_asNonOwnerTeacher_returnsForbidden() {
-    saveTeacher("grade-owner-teacher");
-    var otherTeacher = saveTeacher("grade-other-teacher");
+    saveTeacher("gr-non-owner-teacher");
+    var otherTeacher = saveTeacher("gr-course-owner-teacher");
     var course = saveCourse("grade-non-owner-course");
     course.getTeachers().add(otherTeacher);
     courseRepository.save(course);
-    var student = saveStudent("grade-non-owner-student");
+    var student = saveStudent("gr-nonowner-student");
     var exam = saveExam(course);
 
     var response =
         recordGrade(
-            token("grade-owner-teacher", "TEACHER"),
-            exam.getId(),
-            gradeBody(student.getId(), 12.0));
+            token("gr-non-owner-teacher", "TEACHER"), exam, gradeBody(student.getId(), 12.0));
 
     assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
   }
 
   @Test
   void recordGrade_onUnknownExam_returnsNotFound() {
-    var student = saveStudent("grade-unknown-exam-student");
+    var student = saveStudent("gr-unknown-exam-student");
+    var course = saveCourse("grade-unknown-exam-course");
+    var unknownExam = examBuilder(course).id(UUID.randomUUID()).build();
 
-    var response = recordGrade(token("ADMIN"), UUID.randomUUID(), gradeBody(student.getId(), 12.0));
+    var response = recordGrade(token("ADMIN"), unknownExam, gradeBody(student.getId(), 12.0));
 
     assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
   }
 
   @Test
   void recordGrade_whenExamNotInCourse_returnsNotFound() {
-    var student = saveStudent("grade-mismatch-student");
+    var student = saveStudent("gr-mismatch-student");
     var exam = saveExam(saveCourse("grade-mismatch-course"));
 
     var response =
-        recordGrade(
-            token("ADMIN"), exam.getId(), gradeBody(student.getId(), 12.0), UUID.randomUUID());
+        recordGrade(token("ADMIN"), exam, gradeBody(student.getId(), 12.0), UUID.randomUUID());
 
     assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
   }
@@ -128,28 +124,28 @@ class GradesIT extends FacadeIT {
   void recordGrade_onUnknownStudent_returnsNotFound() {
     var exam = saveExam(saveCourse("grade-unknown-student-course"));
 
-    var response = recordGrade(token("ADMIN"), exam.getId(), gradeBody(UUID.randomUUID(), 12.0));
+    var response = recordGrade(token("ADMIN"), exam, gradeBody(UUID.randomUUID(), 12.0));
 
     assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
   }
 
   @Test
   void recordGrade_valueOutOfRange_returnsBadRequest() {
-    var student = saveStudent("grade-range-student");
+    var student = saveStudent("gr-range-student");
     var exam = saveExam(saveCourse("grade-range-course"));
 
-    var response = recordGrade(token("ADMIN"), exam.getId(), gradeBody(student.getId(), 21.0));
+    var response = recordGrade(token("ADMIN"), exam, gradeBody(student.getId(), 21.0));
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
   }
 
   @Test
   void recordGrade_reRecordMarksPreviousGradeNonCurrent() {
-    var student = saveStudent("grade-rerecord-student");
+    var student = saveStudent("gr-rerecord-student");
     var exam = saveExam(saveCourse("grade-rerecord-course"));
 
-    recordGrade(token("ADMIN"), exam.getId(), gradeBody(student.getId(), 10.0));
-    var response = recordGrade(token("ADMIN"), exam.getId(), gradeBody(student.getId(), 14.0));
+    recordGrade(token("ADMIN"), exam, gradeBody(student.getId(), 10.0));
+    var response = recordGrade(token("ADMIN"), exam, gradeBody(student.getId(), 14.0));
 
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     var current = gradeRepository.findByStudentIdAndCurrentTrue(student.getId());
@@ -162,13 +158,13 @@ class GradesIT extends FacadeIT {
 
   @Test
   void getGrades_asAdmin_returnsCurrentGradesAndFiltersByCourse() {
-    var student = saveStudent("grades-admin-student");
+    var student = saveStudent("gr-grades-admin-student");
     var course = saveCourse("grades-admin-course");
     var otherCourse = saveCourse("grades-admin-other");
     var exam = saveExam(course);
     var otherExam = saveExam(otherCourse);
-    recordGrade(token("ADMIN"), exam.getId(), gradeBody(student.getId(), 15.0));
-    recordGrade(token("ADMIN"), otherExam.getId(), gradeBody(student.getId(), 11.0));
+    recordGrade(token("ADMIN"), exam, gradeBody(student.getId(), 15.0));
+    recordGrade(token("ADMIN"), otherExam, gradeBody(student.getId(), 11.0));
 
     var filtered = getGrades(token("ADMIN"), student.getId(), course.getId());
 
@@ -182,11 +178,11 @@ class GradesIT extends FacadeIT {
 
   @Test
   void getGrades_asStudentOwner_returnsOk() {
-    var student = saveStudent("grades-owner-student", "grades-owner");
-    var exam = saveExam(saveCourse("grades-owner-course"));
-    recordGrade(token("ADMIN"), exam.getId(), gradeBody(student.getId(), 13.0));
+    var student = saveStudent("gr-grades-owner-student", "gr-grades-owner");
+    var exam = saveExam(saveCourse("gr-grades-owner-course"));
+    recordGrade(token("ADMIN"), exam, gradeBody(student.getId(), 13.0));
 
-    var response = getGrades(token("grades-owner", "STUDENT"), student.getId(), null);
+    var response = getGrades(token("gr-grades-owner", "STUDENT"), student.getId(), null);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(1, response.getBody().size());
@@ -194,18 +190,18 @@ class GradesIT extends FacadeIT {
 
   @Test
   void getGrades_asStudentNonOwner_returnsForbidden() {
-    saveStudent("grades-non-owner-student", "grades-non-owner");
+    saveStudent("gr-grades-nonowner-student", "gr-grades-nonowner");
 
-    var response = getGradesAsString(token("other-user", "STUDENT"), UUID.randomUUID(), null);
+    var response = getGradesAsString(token("gr-other-user", "STUDENT"), UUID.randomUUID(), null);
 
     assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
   }
 
   @Test
   void getGradeHistory_asAdmin_returnsEntriesOrdered() {
-    var student = saveStudent("history-admin-student");
+    var student = saveStudent("gr-history-admin-student");
     var exam = saveExam(saveCourse("history-admin-course"));
-    recordGrade(token("ADMIN"), exam.getId(), gradeBody(student.getId(), 10.0));
+    recordGrade(token("ADMIN"), exam, gradeBody(student.getId(), 10.0));
     var grade = gradeRepository.findByStudentIdAndCurrentTrue(student.getId()).get(0);
     modifyGrade(
         token("ADMIN"), grade.getId(), Map.of("newValue", 14.0, "reason", "Claim accepted"));
@@ -220,10 +216,10 @@ class GradesIT extends FacadeIT {
 
   @Test
   void getGradeHistory_whenGradeNotForStudent_returnsNotFound() {
-    var student = saveStudent("history-mismatch-student");
-    var otherStudent = saveStudent("history-mismatch-other");
+    var student = saveStudent("gr-history-mismatch-student");
+    var otherStudent = saveStudent("gr-history-mismatch-other");
     var exam = saveExam(saveCourse("history-mismatch-course"));
-    recordGrade(token("ADMIN"), exam.getId(), gradeBody(otherStudent.getId(), 10.0));
+    recordGrade(token("ADMIN"), exam, gradeBody(otherStudent.getId(), 10.0));
     var grade = gradeRepository.findByStudentIdAndCurrentTrue(otherStudent.getId()).get(0);
 
     var response = getGradeHistoryAsString(token("ADMIN"), student.getId(), grade.getId());
@@ -233,9 +229,9 @@ class GradesIT extends FacadeIT {
 
   @Test
   void modifyGrade_createsNewHistoryVersion() {
-    var student = saveStudent("modify-student");
+    var student = saveStudent("gr-modify-student");
     var exam = saveExam(saveCourse("modify-course"));
-    recordGrade(token("ADMIN"), exam.getId(), gradeBody(student.getId(), 10.0));
+    recordGrade(token("ADMIN"), exam, gradeBody(student.getId(), 10.0));
     var grade = gradeRepository.findByStudentIdAndCurrentTrue(student.getId()).get(0);
 
     var response =
@@ -252,19 +248,19 @@ class GradesIT extends FacadeIT {
 
   @Test
   void modifyGrade_asNonOwnerTeacher_returnsForbidden() {
-    saveTeacher("modify-owner-teacher");
-    var otherTeacher = saveTeacher("modify-other-teacher");
+    saveTeacher("gr-modify-non-owner-teacher");
+    var otherTeacher = saveTeacher("gr-modify-course-owner-teacher");
     var course = saveCourse("modify-non-owner-course");
     course.getTeachers().add(otherTeacher);
     courseRepository.save(course);
-    var student = saveStudent("modify-non-owner-student");
+    var student = saveStudent("gr-modify-nonowner-student");
     var exam = saveExam(course);
-    recordGrade(token("ADMIN"), exam.getId(), gradeBody(student.getId(), 10.0));
+    recordGrade(token("ADMIN"), exam, gradeBody(student.getId(), 10.0));
     var grade = gradeRepository.findByStudentIdAndCurrentTrue(student.getId()).get(0);
 
     var response =
         modifyGrade(
-            token("modify-owner-teacher", "TEACHER"),
+            token("gr-modify-non-owner-teacher", "TEACHER"),
             grade.getId(),
             Map.of("newValue", 16.0, "reason", "Remarking"));
 
@@ -273,9 +269,9 @@ class GradesIT extends FacadeIT {
 
   @Test
   void modifyGrade_missingReason_returnsBadRequest() {
-    var student = saveStudent("modify-reason-student");
+    var student = saveStudent("gr-modify-reason-student");
     var exam = saveExam(saveCourse("modify-reason-course"));
-    recordGrade(token("ADMIN"), exam.getId(), gradeBody(student.getId(), 10.0));
+    recordGrade(token("ADMIN"), exam, gradeBody(student.getId(), 10.0));
     var grade = gradeRepository.findByStudentIdAndCurrentTrue(student.getId()).get(0);
 
     var response =
@@ -311,13 +307,11 @@ class GradesIT extends FacadeIT {
   }
 
   private JExam saveExam(JCourse course) {
-    return examRepository.save(
-        JExam.builder()
-            .course(course)
-            .name("Midterm")
-            .schedule(Instant.now())
-            .coefficient(0.5)
-            .build());
+    return examRepository.save(examBuilder(course).build());
+  }
+
+  private JExam.JExamBuilder examBuilder(JCourse course) {
+    return JExam.builder().course(course).name("Midterm").schedule(Instant.now()).coefficient(0.5);
   }
 
   private JTeacher saveTeacher(String username) {
@@ -335,17 +329,16 @@ class GradesIT extends FacadeIT {
     return Map.of("studentId", studentId.toString(), "value", value);
   }
 
-  private ResponseEntity<Map> recordGrade(String token, UUID examId, Object body) {
-    return recordGrade(token, examId, body, null);
+  private ResponseEntity<Map> recordGrade(String token, JExam exam, Object body) {
+    return recordGrade(token, exam, body, exam.getCourse().getId());
   }
 
-  private ResponseEntity<Map> recordGrade(String token, UUID examId, Object body, UUID courseId) {
+  private ResponseEntity<Map> recordGrade(String token, JExam exam, Object body, UUID courseId) {
     var headers = new HttpHeaders();
     headers.setBearerAuth(token);
     headers.setContentType(MediaType.APPLICATION_JSON);
-    var coursePath = courseId == null ? UUID.randomUUID() : courseId;
     return restTemplate.exchange(
-        "/courses/" + coursePath + "/exams/" + examId + "/grades",
+        "/courses/" + courseId + "/exams/" + exam.getId() + "/grades",
         HttpMethod.POST,
         new HttpEntity<>(body, headers),
         Map.class);
