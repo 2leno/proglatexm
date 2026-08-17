@@ -50,9 +50,9 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void loginEndpoint_withoutToken_returnsNotFound() {
+  void loginEndpoint_withoutToken_returnsUnauthorized() {
     var response = restTemplate.postForEntity("/auth/login", null, String.class);
-    assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
   }
 
   @Test
