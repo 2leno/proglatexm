@@ -7,6 +7,8 @@ import api.poja.app.conf.FacadeIT;
 import api.poja.app.endpoint.event.EventProducer;
 import api.poja.app.security.JwtTokenProvider;
 import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -15,7 +17,9 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 
 class SecurityIT extends FacadeIT {
 
@@ -23,6 +27,11 @@ class SecurityIT extends FacadeIT {
 
   @Autowired TestRestTemplate restTemplate;
   @Autowired JwtTokenProvider jwtTokenProvider;
+
+  @BeforeEach
+  void disableStreaming() {
+    restTemplate.getRestTemplate().setRequestFactory(new JdkClientHttpRequestFactory());
+  }
 
   @Test
   void authenticatedEndpoint_withoutToken_returnsUnauthorized() {
@@ -50,9 +59,15 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void loginEndpoint_withoutToken_returnsNotFound() {
-    var response = restTemplate.postForEntity("/auth/login", null, String.class);
-    assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+  void loginEndpoint_withoutToken_returnsUnauthorized() {
+    var headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    var response =
+        restTemplate.postForEntity(
+            "/auth/login",
+            new HttpEntity<>(Map.of("username", "admin", "password", "wrong"), headers),
+            String.class);
+    assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
   }
 
   @Test
