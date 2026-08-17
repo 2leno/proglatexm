@@ -1,8 +1,8 @@
 package api.poja.app.service;
 
 import api.poja.app.exception.ApiException;
+import api.poja.app.mapper.ExamMapper;
 import api.poja.app.model.Exam;
-import api.poja.app.model.ExamInput;
 import api.poja.app.repository.JCourseRepository;
 import api.poja.app.repository.JExamRepository;
 import api.poja.app.repository.model.JExam;
@@ -19,8 +19,9 @@ public class CoursesService {
 
   private final JCourseRepository courseRepository;
   private final JExamRepository examRepository;
+  private final ExamMapper examMapper;
 
-  public Exam createExam(UUID courseId, ExamInput input) {
+  public Exam createExam(UUID courseId, Exam input) {
     var course =
         courseRepository
             .findById(courseId)
@@ -40,15 +41,6 @@ public class CoursesService {
             .schedule(input.schedule())
             .coefficient(input.coefficient())
             .build();
-    return toExam(examRepository.save(exam));
-  }
-
-  private Exam toExam(JExam exam) {
-    return Exam.builder()
-        .id(exam.getId().toString())
-        .name(exam.getName())
-        .schedule(exam.getSchedule())
-        .coefficient(exam.getCoefficient())
-        .build();
+    return examMapper.toDomain(examRepository.save(exam));
   }
 }
