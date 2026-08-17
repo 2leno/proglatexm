@@ -195,14 +195,14 @@ class GroupsIT extends FacadeIT {
   void history_asStudentNonOwner_returnsForbidden() {
     var student = saveStudent("history-non-owner-student", "history-non-owner");
 
-    var response = history(token("other-user", "STUDENT"), student.getId());
+    var response = historyAsString(token("other-user", "STUDENT"), student.getId());
 
     assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
   }
 
   @Test
   void history_onUnknownStudent_returnsNotFound() {
-    var response = history(token("ADMIN"), UUID.randomUUID());
+    var response = historyAsString(token("ADMIN"), UUID.randomUUID());
 
     assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
   }
@@ -259,6 +259,16 @@ class GroupsIT extends FacadeIT {
         HttpMethod.GET,
         new HttpEntity<>(headers),
         new ParameterizedTypeReference<List<Map>>() {});
+  }
+
+  private ResponseEntity<String> historyAsString(String token, UUID studentId) {
+    var headers = new HttpHeaders();
+    headers.setBearerAuth(token);
+    return restTemplate.exchange(
+        "/students/" + studentId + "/groups/history",
+        HttpMethod.GET,
+        new HttpEntity<>(headers),
+        String.class);
   }
 
   private String token(String role) {
