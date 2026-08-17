@@ -692,9 +692,9 @@ components:
       properties:
         rank:
           type: integer
-        studentCode:
+        reference:
           type: string
-          description: Student's STD identifier
+          description: Student's STD identifier, e.g. STD24432 (STDyyNNN)
         lastName:
           type: string
         firstName:
@@ -746,6 +746,10 @@ components:
           format: uuid
         name:
           type: string
+        schedule:
+          type: string
+          format: date-time
+          description: Exact date and time of the exam
         coefficient:
           type: number
           format: float
@@ -753,10 +757,13 @@ components:
 
     ExamInput:
       type: object
-      required: [name, coefficient]
+      required: [name, schedule, coefficient]
       properties:
         name:
           type: string
+        schedule:
+          type: string
+          format: date-time
         coefficient:
           type: number
           format: float
@@ -767,7 +774,7 @@ components:
         id:
           type: string
           format: uuid
-        code:
+        reference:
           type: string
           example: K3
         promotionId:
@@ -776,9 +783,9 @@ components:
 
     GroupInput:
       type: object
-      required: [code, promotionId]
+      required: [reference, promotionId]
       properties:
-        code:
+        reference:
           type: string
         promotionId:
           type: string
@@ -787,7 +794,7 @@ components:
     StudentGroupPeriod:
       type: object
       properties:
-        groupCode:
+        reference:
           type: string
         startDate:
           type: string
@@ -831,14 +838,15 @@ components:
 
     StudentInput:
       type: object
-      required: [firstName, lastName, studentCode, parcours]
+      required: [firstName, lastName, reference, parcours]
       properties:
         firstName:
           type: string
         lastName:
           type: string
-        studentCode:
+        reference:
           type: string
+          description: Student reference, e.g. STD24432 (STDyyNNN)
         parcours:
           $ref: "#/components/schemas/Parcours"
 

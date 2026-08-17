@@ -40,8 +40,8 @@ public class JStudent {
   @Column(name = "last_name", nullable = false)
   private String lastName;
 
-  @Column(name = "student_code", nullable = false, unique = true)
-  private String studentCode;
+  @Column(nullable = false, unique = true)
+  private String reference;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)

@@ -39,5 +39,8 @@ out/
 .aws-sam
 **.toml
 
+# Local secrets (never commit plaintext credentials)
+secrets/
+
 ### Mac OS ###
 .DS_Store

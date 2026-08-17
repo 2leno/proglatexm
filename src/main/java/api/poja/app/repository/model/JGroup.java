@@ -29,7 +29,7 @@ public class JGroup {
   private UUID id;
 
   @Column(nullable = false)
-  private String code;
+  private String reference;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "promotion_id", nullable = false)
