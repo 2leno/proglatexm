@@ -85,9 +85,9 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void createCourse_asAdmin_returnsNotFound() {
+  void createCourse_asAdmin_withoutBody_returnsBadRequest() {
     assertEquals(
-        HttpStatus.NOT_FOUND,
+        HttpStatus.BAD_REQUEST,
         exchangeWithBearer(token("ADMIN"), "/courses", HttpMethod.POST).getStatusCode());
   }
 
