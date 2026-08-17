@@ -1,4 +1,4 @@
-package api.poja.app.model;
+package api.poja.app.endpoint.rest.model.response;
 
 import java.time.Instant;
 import lombok.Builder;

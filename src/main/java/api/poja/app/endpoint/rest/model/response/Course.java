@@ -1,14 +1,14 @@
-package api.poja.app.model;
+package api.poja.app.endpoint.rest.model.response;
 
+import api.poja.app.model.Parcours;
 import java.util.List;
-import java.util.UUID;
 import lombok.Builder;
 
 @Builder
 public record Course(
-    UUID id,
+    String id,
     String reference,
     String title,
     Integer credits,
     Parcours parcours,
-    List<UUID> teacherIds) {}
+    List<String> teacherIds) {}
