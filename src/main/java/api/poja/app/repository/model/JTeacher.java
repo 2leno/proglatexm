@@ -31,6 +31,9 @@ public class JTeacher {
   @Column(nullable = false)
   private String password;
 
+  @Column(nullable = false, unique = true)
+  private String reference;
+
   @Column(name = "first_name", nullable = false)
   private String firstName;
 

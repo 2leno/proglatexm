@@ -5,5 +5,6 @@ create table if not exists exam
     course_id uuid not null
         constraint exam_course_fk references course (id),
     name varchar not null,
+    schedule timestamp not null,
     coefficient double precision not null
 );

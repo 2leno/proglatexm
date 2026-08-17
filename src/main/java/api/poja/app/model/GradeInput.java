@@ -1,15 +1,6 @@
 package api.poja.app.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class GradeInput {
-  private String studentId;
-  private Double value;
-}
+public record GradeInput(String studentId, Double value) {}
