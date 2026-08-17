@@ -92,10 +92,10 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void listGroups_asTeacher_returnsNotFound() {
-    assertEquals(
-        HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("TEACHER"), "/groups", HttpMethod.GET).getStatusCode());
+  void listGroups_asTeacher_isAuthorized() {
+    var status = exchangeWithBearer(token("TEACHER"), "/groups", HttpMethod.GET).getStatusCode();
+    assertNotEquals(HttpStatus.FORBIDDEN, status);
+    assertNotEquals(HttpStatus.UNAUTHORIZED, status);
   }
 
   @Test

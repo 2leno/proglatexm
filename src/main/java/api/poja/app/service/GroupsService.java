@@ -1,9 +1,12 @@
 package api.poja.app.service;
 
 import api.poja.app.exception.ApiException;
+import api.poja.app.mapper.GroupMapper;
 import api.poja.app.mapper.StudentGroupPeriodMapper;
+import api.poja.app.model.Group;
 import api.poja.app.model.StudentGroupPeriod;
 import api.poja.app.repository.JGroupRepository;
+import api.poja.app.repository.JPromotionRepository;
 import api.poja.app.repository.JStudentGroupPeriodRepository;
 import api.poja.app.repository.JStudentRepository;
 import api.poja.app.repository.model.JGroup;
@@ -16,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @AllArgsConstructor
@@ -23,8 +27,10 @@ public class GroupsService {
 
   private final JStudentRepository studentRepository;
   private final JGroupRepository groupRepository;
+  private final JPromotionRepository promotionRepository;
   private final JStudentGroupPeriodRepository periodRepository;
   private final StudentGroupPeriodMapper periodMapper;
+  private final GroupMapper groupMapper;
 
   public api.poja.app.endpoint.rest.model.response.StudentGroupPeriod assign(
       UUID studentId, StudentGroupPeriod input) {
@@ -68,6 +74,29 @@ public class GroupsService {
         .findById(studentId)
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Student not found"));
     return toRestPeriods(periodRepository.findByStudentIdOrderByStartDateAsc(studentId));
+  }
+
+  @Transactional(readOnly = true)
+  public List<Group> listGroups() {
+    return groupRepository.findAll().stream().map(groupMapper::toDomain).toList();
+  }
+
+  @Transactional
+  public Group createGroup(Group input) {
+    if (input.reference() == null || input.reference().isBlank()) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "Reference is required");
+    }
+    if (input.promotionId() == null) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "Promotion is required");
+    }
+    var promotion =
+        promotionRepository
+            .findById(input.promotionId())
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Promotion not found"));
+    var saved =
+        groupRepository.save(
+            JGroup.builder().reference(input.reference()).promotion(promotion).build());
+    return groupMapper.toDomain(saved);
   }
 
   private void ensureOwnerOrAdmin(UUID studentId, Authentication authentication) {

@@ -3,6 +3,7 @@ package api.poja.app.endpoint.rest.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.poja.app.conf.FacadeIT;
 import api.poja.app.endpoint.event.EventProducer;
@@ -20,6 +21,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -31,6 +33,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 
 class GroupsIT extends FacadeIT {
 
@@ -42,6 +45,11 @@ class GroupsIT extends FacadeIT {
   @Autowired JGroupRepository groupRepository;
   @Autowired JPromotionRepository promotionRepository;
   @Autowired JStudentGroupPeriodRepository periodRepository;
+
+  @BeforeEach
+  void disableStreaming() {
+    restTemplate.getRestTemplate().setRequestFactory(new JdkClientHttpRequestFactory());
+  }
 
   @Test
   void assign_asAdmin_returnsCreatedAndPersists() {
@@ -218,6 +226,111 @@ class GroupsIT extends FacadeIT {
     assertEquals(0, response.getBody().size());
   }
 
+  @Test
+  void createGroup_asAdmin_returnsCreatedAndPersists() {
+    var promotion = savePromotion("create-group-promotion");
+    var body =
+        Map.of("reference", "create-group-reference", "promotionId", promotion.getId().toString());
+
+    var response = createGroup(token("ADMIN"), body);
+
+    assertEquals(HttpStatus.CREATED, response.getStatusCode());
+    assertEquals("create-group-reference", response.getBody().get("reference"));
+    assertEquals(promotion.getId().toString(), response.getBody().get("promotionId"));
+    var references = groupRepository.findAll().stream().map(JGroup::getReference).toList();
+    assertTrue(references.contains("create-group-reference"));
+  }
+
+  @Test
+  void createGroup_missingPromotion_returnsBadRequest() {
+    var response = createGroup(token("ADMIN"), Map.of("reference", "create-group-no-promotion"));
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+  }
+
+  @Test
+  void createGroup_blankReference_returnsBadRequest() {
+    var promotion = savePromotion("create-group-blank-promotion");
+
+    var response =
+        createGroup(
+            token("ADMIN"), Map.of("reference", "  ", "promotionId", promotion.getId().toString()));
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+  }
+
+  @Test
+  void createGroup_onUnknownPromotion_returnsNotFound() {
+    var response =
+        createGroup(
+            token("ADMIN"),
+            Map.of(
+                "reference", "create-group-unknown", "promotionId", UUID.randomUUID().toString()));
+
+    assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+  }
+
+  @Test
+  void createGroup_asTeacher_returnsForbidden() {
+    var promotion = savePromotion("create-group-teacher-promotion");
+
+    var response =
+        createGroup(
+            token("TEACHER"),
+            Map.of(
+                "reference", "create-group-teacher", "promotionId", promotion.getId().toString()));
+
+    assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+  }
+
+  @Test
+  void createGroup_withoutToken_returnsUnauthorized() {
+    var promotion = savePromotion("create-group-anon-promotion");
+
+    var response =
+        createGroup(
+            null,
+            Map.of("reference", "create-group-anon", "promotionId", promotion.getId().toString()));
+
+    assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+  }
+
+  @Test
+  void listGroups_returnsCreatedGroups() {
+    saveGroup("list-groups-one");
+    saveGroup("list-groups-two");
+
+    var response = listGroups(token("ADMIN"));
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    var references = response.getBody().stream().map(group -> group.get("reference")).toList();
+    assertTrue(references.contains("list-groups-one"));
+    assertTrue(references.contains("list-groups-two"));
+  }
+
+  @Test
+  void listGroups_asTeacher_returnsOk() {
+    saveGroup("list-groups-teacher");
+
+    var response = listGroups(token("TEACHER"));
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+  }
+
+  @Test
+  void listGroups_asStudent_returnsForbidden() {
+    var response = listGroupsAsString(token("STUDENT"));
+
+    assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+  }
+
+  @Test
+  void listGroups_withoutToken_returnsUnauthorized() {
+    var response = listGroupsAsString(null);
+
+    assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+  }
+
   private JStudent saveStudent(String reference) {
     return saveStudent(reference, reference);
   }
@@ -235,9 +348,43 @@ class GroupsIT extends FacadeIT {
   }
 
   private JGroup saveGroup(String reference) {
-    var promotion =
-        promotionRepository.save(JPromotion.builder().name("Promotion 2025").year(2025).build());
+    var promotion = savePromotion("Promotion 2025");
     return groupRepository.save(JGroup.builder().reference(reference).promotion(promotion).build());
+  }
+
+  private JPromotion savePromotion(String name) {
+    return promotionRepository.save(JPromotion.builder().name(name).year(2025).build());
+  }
+
+  private ResponseEntity<Map> createGroup(String token, Object body) {
+    var headers = new HttpHeaders();
+    if (token != null) {
+      headers.setBearerAuth(token);
+    }
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    return restTemplate.exchange(
+        "/groups", HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+  }
+
+  private ResponseEntity<List<Map>> listGroups(String token) {
+    return restTemplate.exchange(
+        "/groups",
+        HttpMethod.GET,
+        new HttpEntity<>(headers(token)),
+        new ParameterizedTypeReference<List<Map>>() {});
+  }
+
+  private ResponseEntity<String> listGroupsAsString(String token) {
+    return restTemplate.exchange(
+        "/groups", HttpMethod.GET, new HttpEntity<>(headers(token)), String.class);
+  }
+
+  private HttpHeaders headers(String token) {
+    var headers = new HttpHeaders();
+    if (token != null) {
+      headers.setBearerAuth(token);
+    }
+    return headers;
   }
 
   private ResponseEntity<Map> assign(String token, UUID studentId, Object body) {
