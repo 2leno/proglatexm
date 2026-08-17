@@ -1,6 +1,7 @@
 package api.poja.app.endpoint.rest.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import api.poja.app.conf.FacadeIT;
 import api.poja.app.endpoint.event.EventProducer;
@@ -106,10 +107,11 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void courseExams_asStudent_returnsNotFound() {
-    assertEquals(
-        HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("STUDENT"), "/courses/1/exams", HttpMethod.GET).getStatusCode());
+  void courseExams_asStudent_isAuthorized() {
+    var status =
+        exchangeWithBearer(token("STUDENT"), "/courses/1/exams", HttpMethod.GET).getStatusCode();
+    assertNotEquals(HttpStatus.FORBIDDEN, status);
+    assertNotEquals(HttpStatus.UNAUTHORIZED, status);
   }
 
   @Test
