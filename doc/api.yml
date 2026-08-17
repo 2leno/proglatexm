@@ -562,6 +562,10 @@ paths:
       responses:
         "201":
           description: Student created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
 
   /students/{studentId}/average:
     get:
@@ -836,9 +840,25 @@ components:
           type: string
           format: date-time
 
+    Student:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        reference:
+          type: string
+          description: Student reference, e.g. STD24432 (STDyyNNN)
+        parcours:
+          $ref: "#/components/schemas/Parcours"
+
     StudentInput:
       type: object
-      required: [firstName, lastName, reference, parcours]
+      required: [firstName, lastName, reference, parcours, username, password]
       properties:
         firstName:
           type: string
@@ -849,6 +869,12 @@ components:
           description: Student reference, e.g. STD24432 (STDyyNNN)
         parcours:
           $ref: "#/components/schemas/Parcours"
+        username:
+          type: string
+          description: Login username of the created student, must be unique
+        password:
+          type: string
+          description: Login password of the created student, stored as BCrypt hash
 
     Promotion:
       type: object
