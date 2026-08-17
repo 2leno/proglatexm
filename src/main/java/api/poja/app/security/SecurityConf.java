@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -50,6 +51,36 @@ public class SecurityConf {
                         "/swagger-ui.html",
                         "/v3/api-docs/**")
                     .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/auth/login")
+                    .permitAll()
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/courses",
+                        "/groups",
+                        "/students",
+                        "/students/*/groups",
+                        "/students/*/transcripts/send",
+                        "/promotions/*/transcripts/send-all",
+                        "/promotions/*/graduates/generate")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/courses/*", "/courses/*/teachers")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/promotions/*/graduates/**", "/promotions")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/groups")
+                    .hasAnyRole("ADMIN", "TEACHER")
+                    .requestMatchers(
+                        HttpMethod.POST, "/courses/*/exams", "/courses/*/exams/*/grades")
+                    .hasAnyRole("ADMIN", "TEACHER")
+                    .requestMatchers(HttpMethod.PUT, "/grades/*")
+                    .hasAnyRole("ADMIN", "TEACHER")
+                    .requestMatchers(HttpMethod.GET, "/students/*/groups/history")
+                    .hasAnyRole("ADMIN", "STUDENT")
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "/students/*/transcripts/*",
+                        "/students/*/transcripts/*/status")
+                    .hasAnyRole("ADMIN", "STUDENT")
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
