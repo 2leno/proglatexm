@@ -22,6 +22,7 @@ public class AveragesService {
   private final JStudentRepository studentRepository;
   private final JGradeRepository gradeRepository;
   private final StudentAccessGuard accessGuard;
+  private final GradeAverageComputer gradeAverageComputer;
 
   @Transactional(readOnly = true)
   public AnnualAverage getAnnualAverage(
@@ -37,7 +38,7 @@ public class AveragesService {
         gradeRepository.findByStudentIdAndCurrentTrue(studentId).stream()
             .filter(grade -> grade.getExam().getSchedule().atZone(ZoneOffset.UTC).getYear() == year)
             .toList();
-    return new AnnualAverage(year, weightedAverage(grades), creditsOf(grades));
+    return new AnnualAverage(year, gradeAverageComputer.weightedAverage(grades), creditsOf(grades));
   }
 
   @Transactional(readOnly = true)
@@ -47,23 +48,8 @@ public class AveragesService {
         .findById(studentId)
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Student not found"));
     return new GlobalAverage(
-        weightedAverage(gradeRepository.findByStudentIdAndCurrentTrue(studentId)));
-  }
-
-  private Double weightedAverage(List<JGrade> grades) {
-    if (grades.isEmpty()) {
-      return 0.0;
-    }
-    var totalCoefficient =
-        grades.stream().mapToDouble(grade -> grade.getExam().getCoefficient()).sum();
-    if (totalCoefficient == 0.0) {
-      return 0.0;
-    }
-    var weightedSum =
-        grades.stream()
-            .mapToDouble(grade -> grade.getValue() * grade.getExam().getCoefficient())
-            .sum();
-    return weightedSum / totalCoefficient;
+        gradeAverageComputer.weightedAverage(
+            gradeRepository.findByStudentIdAndCurrentTrue(studentId)));
   }
 
   private Integer creditsOf(List<JGrade> grades) {
