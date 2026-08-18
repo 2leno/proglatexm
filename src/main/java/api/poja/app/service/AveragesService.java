@@ -12,7 +12,6 @@ import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,11 +21,12 @@ public class AveragesService {
 
   private final JStudentRepository studentRepository;
   private final JGradeRepository gradeRepository;
+  private final StudentAccessGuard accessGuard;
 
   @Transactional(readOnly = true)
   public AnnualAverage getAnnualAverage(
       UUID studentId, Integer year, Authentication authentication) {
-    ensureCanReadStudent(studentId, authentication);
+    accessGuard.ensureCanReadStudent(studentId, authentication);
     studentRepository
         .findById(studentId)
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Student not found"));
@@ -42,7 +42,7 @@ public class AveragesService {
 
   @Transactional(readOnly = true)
   public GlobalAverage getGlobalAverage(UUID studentId, Authentication authentication) {
-    ensureCanReadStudent(studentId, authentication);
+    accessGuard.ensureCanReadStudent(studentId, authentication);
     studentRepository
         .findById(studentId)
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Student not found"));
@@ -72,19 +72,5 @@ public class AveragesService {
         .distinct()
         .mapToInt(Integer::intValue)
         .sum();
-  }
-
-  private void ensureCanReadStudent(UUID studentId, Authentication authentication) {
-    var authorities =
-        authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
-    if (authorities.contains("ROLE_STUDENT") && !authorities.contains("ROLE_ADMIN")) {
-      var owner =
-          studentRepository
-              .findByUsername(authentication.getName())
-              .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "Access denied"));
-      if (!owner.getId().equals(studentId)) {
-        throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
-      }
-    }
   }
 }
