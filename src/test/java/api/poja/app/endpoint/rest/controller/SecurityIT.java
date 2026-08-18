@@ -8,6 +8,7 @@ import api.poja.app.endpoint.event.EventProducer;
 import api.poja.app.security.JwtTokenProvider;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -196,7 +197,10 @@ class SecurityIT extends FacadeIT {
   void courseAverages_asTeacher_returnsNotFound() {
     assertEquals(
         HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("TEACHER"), "/students/1/average/global", HttpMethod.GET)
+        exchangeWithBearer(
+                token("TEACHER"),
+                "/students/" + UUID.randomUUID() + "/average/global",
+                HttpMethod.GET)
             .getStatusCode());
   }
 

@@ -30,6 +30,9 @@ public class AveragesService {
     studentRepository
         .findById(studentId)
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Student not found"));
+    if (year == null) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "Year is required");
+    }
     var grades =
         gradeRepository.findByStudentIdAndCurrentTrue(studentId).stream()
             .filter(grade -> grade.getExam().getSchedule().atZone(ZoneOffset.UTC).getYear() == year)
