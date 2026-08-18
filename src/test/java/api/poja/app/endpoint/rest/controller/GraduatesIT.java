@@ -175,7 +175,7 @@ class GraduatesIT extends FacadeIT {
 
   @Test
   void list_unknownPromotion_returnsNotFound() {
-    var response = list(token("ADMIN"), UUID.randomUUID());
+    var response = listAsMap(token("ADMIN"), UUID.randomUUID());
 
     assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
   }
@@ -266,6 +266,14 @@ class GraduatesIT extends FacadeIT {
         HttpMethod.GET,
         new HttpEntity<>(headers(token)),
         List.class);
+  }
+
+  private ResponseEntity<Map> listAsMap(String token, UUID promotionId) {
+    return restTemplate.exchange(
+        "/promotions/" + promotionId + "/graduates",
+        HttpMethod.GET,
+        new HttpEntity<>(headers(token)),
+        Map.class);
   }
 
   private HttpHeaders headers(String token) {

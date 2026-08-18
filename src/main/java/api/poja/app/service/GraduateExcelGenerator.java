@@ -14,7 +14,6 @@ public class GraduateExcelGenerator {
   public byte[] generate(List<Graduate> graduates) {
     try (var workbook = new XSSFWorkbook()) {
       var sheet = workbook.createSheet("Graduates");
-      workbook.removeSheetAt(workbook.getSheetIndex("Sheet0"));
       var header = sheet.createRow(0);
       header.createCell(0).setCellValue("Rank");
       header.createCell(1).setCellValue("Reference");
