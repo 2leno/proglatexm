@@ -196,7 +196,8 @@ class SecurityIT extends FacadeIT {
     assertEquals(
         HttpStatus.NOT_FOUND,
         exchangeWithBearer(
-                token("ADMIN"), "/promotions/" + UUID.randomUUID() + "/graduates/download",
+                token("ADMIN"),
+                "/promotions/" + UUID.randomUUID() + "/graduates/download",
                 HttpMethod.GET)
             .getStatusCode());
   }

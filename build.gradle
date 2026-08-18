@@ -45,6 +45,7 @@ test {
     testLogging {
         events "failed"
         exceptionFormat "full"
+        showStandardStreams true
     }
     finalizedBy jacocoTestCoverageVerification
 }
