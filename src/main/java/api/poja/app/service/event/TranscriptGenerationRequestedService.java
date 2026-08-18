@@ -21,6 +21,7 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @AllArgsConstructor
@@ -35,6 +36,7 @@ public class TranscriptGenerationRequestedService
   private final TranscriptGenerator transcriptGenerator;
 
   @Override
+  @Transactional
   public void accept(TranscriptGenerationRequested event) {
     var student = studentRepository.findById(event.getStudentId()).orElse(null);
     if (student == null) {

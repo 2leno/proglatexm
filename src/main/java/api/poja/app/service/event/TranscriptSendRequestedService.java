@@ -14,6 +14,7 @@ import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @AllArgsConstructor
@@ -26,6 +27,7 @@ public class TranscriptSendRequestedService implements Consumer<TranscriptSendRe
   private final Mailer mailer;
 
   @Override
+  @Transactional
   public void accept(TranscriptSendRequested event) {
     var student = studentRepository.findById(event.getStudentId()).orElse(null);
     if (student == null) {
