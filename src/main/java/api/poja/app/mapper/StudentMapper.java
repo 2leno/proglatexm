@@ -17,6 +17,7 @@ public class StudentMapper {
         .lastName(student.getLastName())
         .reference(student.getReference())
         .parcours(student.getParcours())
+        .email(student.getEmail())
         .build();
   }
 
@@ -28,6 +29,7 @@ public class StudentMapper {
         .lastName(input.lastName())
         .reference(input.reference())
         .parcours(input.parcours())
+        .email(input.email())
         .build();
   }
 
@@ -38,6 +40,7 @@ public class StudentMapper {
         .lastName(student.lastName())
         .reference(student.reference())
         .parcours(student.parcours())
+        .email(student.email())
         .build();
   }
 }

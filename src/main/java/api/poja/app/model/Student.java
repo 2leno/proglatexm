@@ -11,4 +11,5 @@ public record Student(
     String firstName,
     String lastName,
     String reference,
-    Parcours parcours) {}
+    Parcours parcours,
+    String email) {}

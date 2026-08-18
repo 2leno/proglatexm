@@ -182,6 +182,7 @@ class AveragesIT extends FacadeIT {
             .lastName("Last")
             .reference(reference)
             .parcours(Parcours.EL)
+            .email(username + "@proglatexm.com")
             .build());
   }
 

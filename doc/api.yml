@@ -855,10 +855,13 @@ components:
           description: Student reference, e.g. STD24432 (STDyyNNN)
         parcours:
           $ref: "#/components/schemas/Parcours"
+        email:
+          type: string
+          format: email
 
     StudentInput:
       type: object
-      required: [firstName, lastName, reference, parcours, username, password]
+      required: [firstName, lastName, reference, parcours, username, password, email]
       properties:
         firstName:
           type: string
@@ -875,6 +878,10 @@ components:
         password:
           type: string
           description: Login password of the created student, stored as BCrypt hash
+        email:
+          type: string
+          format: email
+          description: Recipient email for grade transcripts, must be unique
 
     Promotion:
       type: object

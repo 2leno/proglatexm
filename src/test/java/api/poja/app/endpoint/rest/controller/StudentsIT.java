@@ -83,6 +83,39 @@ class StudentsIT extends FacadeIT {
   }
 
   @Test
+  void createStudent_missingEmail_returnsBadRequest() {
+    var body = new java.util.HashMap<>(studentBody("no-email-user", "STD25009", "Alice", "Durand"));
+    body.remove("email");
+
+    var response = createStudent(token("ADMIN"), body);
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+  }
+
+  @Test
+  void createStudent_invalidEmail_returnsBadRequest() {
+    var body =
+        new java.util.HashMap<>(studentBody("bad-email-user", "STD25010", "Alice", "Durand"));
+    body.put("email", "not-an-email");
+
+    var response = createStudent(token("ADMIN"), body);
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+  }
+
+  @Test
+  void createStudent_duplicateEmail_returnsConflict() {
+    createStudent(token("ADMIN"), studentBody("dup-email-user", "STD25011", "Bob", "Martin"));
+
+    var second =
+        new java.util.HashMap<>(studentBody("dup-email-other", "STD25012", "Bob", "Martin"));
+    second.put("email", "dup-email-user@proglatexm.com");
+    var response = createStudent(token("ADMIN"), second);
+
+    assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+  }
+
+  @Test
   void createStudent_asTeacher_returnsForbidden() {
     var response =
         createStudent(token("TEACHER"), studentBody("teacher-user", "STD25006", "Alice", "Durand"));
@@ -120,7 +153,8 @@ class StudentsIT extends FacadeIT {
         "reference", reference,
         "parcours", Parcours.EL.name(),
         "username", username,
-        "password", "secret-password");
+        "password", "secret-password",
+        "email", username + "@proglatexm.com");
   }
 
   private ResponseEntity<Map> createStudent(String token, Object body) {
