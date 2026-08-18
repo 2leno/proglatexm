@@ -12,4 +12,6 @@ public interface JStudentGroupPeriodRepository extends JpaRepository<JStudentGro
   List<JStudentGroupPeriod> findByStudentIdOrderByStartDateAsc(UUID studentId);
 
   Optional<JStudentGroupPeriod> findFirstByStudentIdOrderByStartDateDesc(UUID studentId);
+
+  List<JStudentGroupPeriod> findByGroupPromotionId(UUID promotionId);
 }

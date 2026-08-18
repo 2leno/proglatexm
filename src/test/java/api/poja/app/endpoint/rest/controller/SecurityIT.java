@@ -148,18 +148,24 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void transcriptDownload_asStudent_returnsNotFound() {
+  void transcriptDownload_asStudentForNonOwnedStudent_returnsForbidden() {
     assertEquals(
-        HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("STUDENT"), "/students/1/transcripts/2023", HttpMethod.GET)
+        HttpStatus.FORBIDDEN,
+        exchangeWithBearer(
+                token("STUDENT"),
+                "/students/" + UUID.randomUUID() + "/transcripts/2023",
+                HttpMethod.GET)
             .getStatusCode());
   }
 
   @Test
-  void transcriptsStatus_asStudent_returnsNotFound() {
+  void transcriptsStatus_asStudentForNonOwnedStudent_returnsForbidden() {
     assertEquals(
-        HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("STUDENT"), "/students/1/transcripts/2023/status", HttpMethod.GET)
+        HttpStatus.FORBIDDEN,
+        exchangeWithBearer(
+                token("STUDENT"),
+                "/students/" + UUID.randomUUID() + "/transcripts/2023/status",
+                HttpMethod.GET)
             .getStatusCode());
   }
 

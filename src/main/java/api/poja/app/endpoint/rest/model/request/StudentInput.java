@@ -10,4 +10,5 @@ public record StudentInput(
     String reference,
     Parcours parcours,
     String username,
-    String password) {}
+    String password,
+    String email) {}

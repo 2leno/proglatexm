@@ -5,6 +5,7 @@ import api.poja.app.mapper.StudentMapper;
 import api.poja.app.model.Student;
 import api.poja.app.repository.JStudentRepository;
 import api.poja.app.repository.model.JStudent;
+import java.util.regex.Pattern;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -14,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @AllArgsConstructor
 public class StudentsService {
+
+  private static final Pattern EMAIL_PATTERN =
+      Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
   private final JStudentRepository studentRepository;
   private final BCryptPasswordEncoder passwordEncoder;
@@ -31,6 +35,7 @@ public class StudentsService {
                 .lastName(input.lastName())
                 .reference(input.reference())
                 .parcours(input.parcours())
+                .email(input.email())
                 .build());
     return studentMapper.toDomain(saved);
   }
@@ -54,11 +59,20 @@ public class StudentsService {
     if (input.parcours() == null) {
       throw new ApiException(HttpStatus.BAD_REQUEST, "Parcours is required");
     }
+    if (input.email() == null || input.email().isBlank()) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "Email is required");
+    }
+    if (!EMAIL_PATTERN.matcher(input.email()).matches()) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "Email is invalid");
+    }
     if (studentRepository.findByUsername(input.username()).isPresent()) {
       throw new ApiException(HttpStatus.CONFLICT, "Username already exists");
     }
     if (studentRepository.existsByReference(input.reference())) {
       throw new ApiException(HttpStatus.CONFLICT, "Reference already exists");
+    }
+    if (studentRepository.existsByEmail(input.email())) {
+      throw new ApiException(HttpStatus.CONFLICT, "Email already exists");
     }
   }
 }
