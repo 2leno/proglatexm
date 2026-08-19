@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>proglatexm</title>
+    <link rel="stylesheet" th:href="@{/ui/css/proglatexm.css}" />
+  </head>
+  <body>
+    <header th:fragment="header" class="site-header">
+      <a th:href="@{/ui/promotions}" class="brand">proglatexm</a>
+      <form th:action="@{/ui/logout}" method="post" class="logout-form">
+        <button type="submit" class="btn">Logout</button>
+      </form>
+    </header>
+  </body>
+</html>
