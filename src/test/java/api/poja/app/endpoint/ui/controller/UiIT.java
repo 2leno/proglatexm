@@ -327,7 +327,8 @@ class UiIT extends FacadeIT {
       }
       var location = page.getHeaders().getLocation();
       page =
-          restTemplate.getForEntity(location == null ? "/ui/login" : location.toString(), String.class);
+          restTemplate.getForEntity(
+              location == null ? "/ui/login" : location.toString(), String.class);
     }
     return page;
   }
