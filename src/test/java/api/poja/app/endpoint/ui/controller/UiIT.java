@@ -179,6 +179,117 @@ class UiIT extends FacadeIT {
     assertTrue(page.getBody().contains("12.00"));
   }
 
+  @Test
+  void graduatesPage_listsRankedGraduates() {
+    var promotion =
+        promotionRepository.save(JPromotion.builder().name("Grad Promo 2026").year(2026).build());
+    var group =
+        groupRepository.save(JGroup.builder().reference("GR-GROUP").promotion(promotion).build());
+    var student = saveStudent("grad-student-1");
+    periodRepository.save(
+        JStudentGroupPeriod.builder()
+            .student(student)
+            .group(group)
+            .startDate(LocalDate.of(2026, 9, 1))
+            .build());
+    var course =
+        courseRepository.save(
+            JCourse.builder()
+                .reference("GR-COURSE-1")
+                .title("GR Mathematics")
+                .credits(5)
+                .parcours(Parcours.EL)
+                .build());
+    var exam =
+        examRepository.save(
+            JExam.builder()
+                .course(course)
+                .name("GR Final")
+                .schedule(Instant.parse("2026-06-01T10:00:00Z"))
+                .coefficient(1.0)
+                .build());
+    gradeRepository.save(
+        JGrade.builder().student(student).exam(exam).value(15.0).current(true).build());
+
+    var token = loginAndGetToken();
+    var page = getWithToken("/ui/promotions/" + promotion.getId() + "/graduates", token);
+
+    assertEquals(HttpStatus.OK, page.getStatusCode());
+    assertTrue(page.getBody().contains("Graduates"));
+    assertTrue(page.getBody().contains("grad-student-1"));
+    assertTrue(page.getBody().contains("15.00"));
+  }
+
+  @Test
+  void graduatesDownload_returnsXlsxFile() {
+    var promotion =
+        promotionRepository.save(JPromotion.builder().name("DL Promo 2026").year(2026).build());
+    var group =
+        groupRepository.save(JGroup.builder().reference("DL-GROUP").promotion(promotion).build());
+    var student = saveStudent("dl-student-1");
+    periodRepository.save(
+        JStudentGroupPeriod.builder()
+            .student(student)
+            .group(group)
+            .startDate(LocalDate.of(2026, 9, 1))
+            .build());
+    var course =
+        courseRepository.save(
+            JCourse.builder()
+                .reference("DL-COURSE-1")
+                .title("DL Math")
+                .credits(5)
+                .parcours(Parcours.EL)
+                .build());
+    var exam =
+        examRepository.save(
+            JExam.builder()
+                .course(course)
+                .name("DL Final")
+                .schedule(Instant.parse("2026-06-01T10:00:00Z"))
+                .coefficient(1.0)
+                .build());
+    gradeRepository.save(
+        JGrade.builder().student(student).exam(exam).value(14.0).current(true).build());
+
+    var token = loginAndGetToken();
+    var response =
+        restTemplate.exchange(
+            "/ui/promotions/" + promotion.getId() + "/graduates/download",
+            HttpMethod.GET,
+            new HttpEntity<>(
+                null,
+                new HttpHeaders() {
+                  {
+                    add(HttpHeaders.COOKIE, "UI_TOKEN=" + token);
+                  }
+                }),
+            byte[].class);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertTrue(response.getHeaders().getContentType().toString().contains("spreadsheetml"));
+    assertTrue(response.getBody().length > 0);
+  }
+
+  @Test
+  void graduatesPage_invalidPromotion_returnsNotFound() {
+    var token = loginAndGetToken();
+    var response =
+        restTemplate.exchange(
+            "/ui/promotions/00000000-0000-0000-0000-000000000000/graduates",
+            HttpMethod.GET,
+            new HttpEntity<>(
+                null,
+                new HttpHeaders() {
+                  {
+                    add(HttpHeaders.COOKIE, "UI_TOKEN=" + token);
+                  }
+                }),
+            String.class);
+
+    assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+  }
+
   private String loginAndGetToken() {
     var login = login(USERNAME, PASSWORD);
     return uiToken(login);
