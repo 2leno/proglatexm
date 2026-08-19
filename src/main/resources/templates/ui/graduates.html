@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title th:text="${promotion.name()} + ' - Graduates'">Graduates - proglatexm</title>
+    <link rel="stylesheet" th:href="@{/ui/css/proglatexm.css}" />
+  </head>
+  <body>
+    <header th:replace="~{ui/layout :: header}"></header>
+    <main class="container">
+      <h1 th:text="${promotion.name()} + ' - Graduates'">Graduates</h1>
+      <p class="muted">
+        <a th:href="@{/ui/promotions/{id}(id=${promotion.id()})}">Back to promotion</a>
+        &middot;
+        <a
+          th:href="@{/ui/promotions/{id}/graduates/download(id=${promotion.id()})}"
+          class="btn"
+          >Download Excel</a
+        >
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Reference</th>
+            <th>Last name</th>
+            <th>First name</th>
+            <th>General average</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="g : ${graduates}">
+            <td th:text="${g.rank()}">1</td>
+            <td th:text="${g.reference()}">REF</td>
+            <td th:text="${g.lastName()}">Last</td>
+            <td th:text="${g.firstName()}">First</td>
+            <td th:text="${#numbers.formatDecimal(g.generalAverage(), 1, 2)}">10.00</td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(graduates)}">
+            <td colspan="5" class="muted">No graduates for this promotion.</td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+  </body>
+</html>
