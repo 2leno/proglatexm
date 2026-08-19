@@ -40,8 +40,12 @@ configurations {
 
 
 test {
-    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+    maxParallelForks = 2
     useJUnitPlatform()
+    testLogging {
+        events "failed", "skipped"
+        exceptionFormat "full"
+    }
     finalizedBy jacocoTestCoverageVerification
 }
 
