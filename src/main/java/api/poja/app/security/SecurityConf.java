@@ -21,6 +21,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -54,7 +55,10 @@ public class SecurityConf {
                             response.sendRedirect("/ui/login")))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/ui/login", "/ui/css/**", "/ui/error")
+                auth.requestMatchers(
+                        new AntPathRequestMatcher("/ui/login"),
+                        new AntPathRequestMatcher("/ui/css/**"),
+                        new AntPathRequestMatcher("/ui/error"))
                     .permitAll()
                     .anyRequest()
                     .hasRole("ADMIN"))

@@ -296,8 +296,8 @@ class UiIT extends FacadeIT {
   }
 
   private ResponseEntity<String> login(String username, String password) {
-    var loginPage = renderLoginPage();
-    assertEquals(HttpStatus.OK, loginPage.getStatusCode(), "GET /ui/login must render login page");
+    var loginPage = restTemplate.getForEntity("/ui/login", String.class);
+    assertEquals(HttpStatus.OK, loginPage.getStatusCode());
     var xsrfCookie =
         loginPage.getHeaders().get(HttpHeaders.SET_COOKIE).stream()
             .filter(cookie -> cookie.startsWith("XSRF-TOKEN="))
@@ -315,22 +315,6 @@ class UiIT extends FacadeIT {
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
     headers.add(HttpHeaders.COOKIE, "XSRF-TOKEN=" + xsrfCookie);
     return restTemplate.postForEntity("/ui/login", new HttpEntity<>(form, headers), String.class);
-  }
-
-  private ResponseEntity<String> renderLoginPage() {
-    var page = restTemplate.getForEntity("/ui/login", String.class);
-    for (int attempt = 0; attempt < 5 && page.getStatusCode() == HttpStatus.FOUND; attempt++) {
-      try {
-        Thread.sleep(500);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      }
-      var location = page.getHeaders().getLocation();
-      page =
-          restTemplate.getForEntity(
-              location == null ? "/ui/login" : location.toString(), String.class);
-    }
-    return page;
   }
 
   private String uiToken(ResponseEntity<?> response) {
