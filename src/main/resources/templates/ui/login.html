@@ -11,6 +11,7 @@
       <p class="muted">Admin browsing interface</p>
       <p th:if="${error}" class="error" th:text="${error}"></p>
       <form th:action="@{/ui/login}" method="post" class="stack">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
         <label>
           Username
           <input type="text" name="username" autofocus required />

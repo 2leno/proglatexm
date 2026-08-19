@@ -26,6 +26,7 @@ import api.poja.app.repository.model.JStudentGroupPeriod;
 import api.poja.app.repository.model.JTeacher;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,8 +79,7 @@ class UiIT extends FacadeIT {
 
   @Test
   void login_redirectsToPromotions_andAllowsBrowsing() {
-    var xsrf = csrfToken();
-    var login = login(USERNAME, PASSWORD, xsrf);
+    var login = login(USERNAME, PASSWORD);
 
     assertEquals(HttpStatus.FOUND, login.getStatusCode());
     assertEquals("/ui/promotions", login.getHeaders().getLocation().getPath());
@@ -92,8 +92,7 @@ class UiIT extends FacadeIT {
 
   @Test
   void login_wrongCredentials_rerendersLoginWithError() {
-    var xsrf = csrfToken();
-    var login = login(USERNAME, "wrong-password", xsrf);
+    var login = login(USERNAME, "wrong-password");
 
     assertEquals(HttpStatus.OK, login.getStatusCode());
     assertTrue(login.getBody().contains("Invalid credentials"));
@@ -114,8 +113,7 @@ class UiIT extends FacadeIT {
                         .lastName("Teacher")
                         .build()));
 
-    var xsrf = csrfToken();
-    var login = login("ui-teacher", "teacher-password", xsrf);
+    var login = login("ui-teacher", "teacher-password");
 
     assertEquals(HttpStatus.OK, login.getStatusCode());
     assertTrue(login.getBody().contains("ADMIN"));
@@ -182,29 +180,29 @@ class UiIT extends FacadeIT {
   }
 
   private String loginAndGetToken() {
-    var xsrf = csrfToken();
-    var login = login(USERNAME, PASSWORD, xsrf);
+    var login = login(USERNAME, PASSWORD);
     return uiToken(login);
   }
 
-  private String csrfToken() {
-    var response = restTemplate.getForEntity("/ui/login", String.class);
-    assertEquals(HttpStatus.OK, response.getStatusCode());
-    return response.getHeaders().get(HttpHeaders.SET_COOKIE).stream()
-        .filter(cookie -> cookie.startsWith("XSRF-TOKEN="))
-        .map(cookie -> cookie.split(";")[0].substring("XSRF-TOKEN=".length()))
-        .findFirst()
-        .orElseThrow();
-  }
-
-  private ResponseEntity<String> login(String username, String password, String xsrf) {
+  private ResponseEntity<String> login(String username, String password) {
+    var loginPage = restTemplate.getForEntity("/ui/login", String.class);
+    assertEquals(HttpStatus.OK, loginPage.getStatusCode());
+    var xsrfCookie =
+        loginPage.getHeaders().get(HttpHeaders.SET_COOKIE).stream()
+            .filter(cookie -> cookie.startsWith("XSRF-TOKEN="))
+            .map(cookie -> cookie.split(";")[0].substring("XSRF-TOKEN=".length()))
+            .findFirst()
+            .orElseThrow();
+    var xsrfField =
+        Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"").matcher(loginPage.getBody());
+    assertTrue(xsrfField.find());
     var form = new LinkedMultiValueMap<String, String>();
     form.add("username", username);
     form.add("password", password);
-    form.add("_csrf", xsrf);
+    form.add("_csrf", xsrfField.group(1));
     var headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-    headers.add(HttpHeaders.COOKIE, "XSRF-TOKEN=" + xsrf);
+    headers.add(HttpHeaders.COOKIE, "XSRF-TOKEN=" + xsrfCookie);
     return restTemplate.postForEntity("/ui/login", new HttpEntity<>(form, headers), String.class);
   }
 
