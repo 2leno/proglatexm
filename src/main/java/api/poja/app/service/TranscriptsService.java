@@ -17,6 +17,7 @@ import api.poja.app.repository.JTranscriptRepository;
 import api.poja.app.repository.model.JStudent;
 import api.poja.app.repository.model.JTranscript;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -108,6 +109,13 @@ public class TranscriptsService {
     var transcript = requireGenerated(studentId, year);
     var file = bucketComponent.download(transcript.getS3Key());
     return Files.readAllBytes(file.toPath());
+  }
+
+  @Transactional(readOnly = true)
+  public String downloadUrl(UUID studentId, Integer year, Authentication authentication) {
+    accessGuard.ensureCanReadStudent(studentId, authentication);
+    var transcript = requireGenerated(studentId, year);
+    return bucketComponent.presign(transcript.getS3Key(), Duration.ofMinutes(60)).toString();
   }
 
   @Transactional(readOnly = true)

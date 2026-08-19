@@ -236,6 +236,13 @@ class SecurityIT extends FacadeIT {
     assertNotEquals(HttpStatus.UNAUTHORIZED, status);
   }
 
+  @Test
+  void listCourses_asStudent_isAuthorized() {
+    var status = exchangeWithBearer(token("STUDENT"), "/courses", HttpMethod.GET).getStatusCode();
+    assertNotEquals(HttpStatus.FORBIDDEN, status);
+    assertNotEquals(HttpStatus.UNAUTHORIZED, status);
+  }
+
   private String token(String role) {
     return jwtTokenProvider.generateToken("user", List.of(role));
   }
