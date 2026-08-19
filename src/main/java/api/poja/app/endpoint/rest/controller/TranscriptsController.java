@@ -52,7 +52,11 @@ public class TranscriptsController {
       @PathVariable Integer year,
       @RequestHeader(name = HttpHeaders.ACCEPT, required = false) String accept,
       Authentication authentication) {
-    if (accept != null && accept.contains(MediaType.APPLICATION_JSON_VALUE)) {
+    boolean wantsJson =
+        accept != null
+            && accept.contains(MediaType.APPLICATION_JSON_VALUE)
+            && !accept.contains(MediaType.ALL_VALUE);
+    if (wantsJson) {
       var downloadUrl = transcriptsService.downloadUrl(studentId, year, authentication);
       return ResponseEntity.ok()
           .contentType(MediaType.APPLICATION_JSON)
