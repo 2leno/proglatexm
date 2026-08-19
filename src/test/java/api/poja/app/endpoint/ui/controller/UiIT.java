@@ -319,7 +319,7 @@ class UiIT extends FacadeIT {
 
   private ResponseEntity<String> renderLoginPage() {
     var page = restTemplate.getForEntity("/ui/login", String.class);
-    while (page.getStatusCode() == HttpStatus.FOUND) {
+    for (int attempt = 0; attempt < 5 && page.getStatusCode() == HttpStatus.FOUND; attempt++) {
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {
