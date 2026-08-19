@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title th:text="${promotion.name()}">Promotion - proglatexm</title>
+    <link rel="stylesheet" th:href="@{/ui/css/proglatexm.css}" />
+  </head>
+  <body>
+    <header th:replace="~{ui/layout :: header}"></header>
+    <main class="container">
+      <h1 th:text="${promotion.name()}">Promotion</h1>
+      <p class="muted" th:text="'Academic year ' + ${promotion.year()}">Academic year</p>
+
+      <h2>Groups and students</h2>
+      <div th:each="g : ${promotion.groups()}" class="card">
+        <h3 th:text="${g.reference()}">Group</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Last name</th>
+              <th>First name</th>
+              <th>Parcours</th>
+              <th>Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="s : ${g.students()}">
+              <td>
+                <a th:href="@{/ui/students/{id}(id=${s.id()})}" th:text="${s.reference()}">REF</a>
+              </td>
+              <td th:text="${s.lastName()}">Last</td>
+              <td th:text="${s.firstName()}">First</td>
+              <td th:text="${s.parcours()}">EL</td>
+              <td th:text="${s.email()}">email</td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(g.students())}">
+              <td colspan="5" class="muted">No students in this group.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>
