@@ -53,6 +53,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 
@@ -108,6 +109,27 @@ class TranscriptsIT extends FacadeIT {
     var download = download(token("ADMIN"), student.getId(), 2025);
     assertEquals(HttpStatus.OK, download.getStatusCode());
     assertTrue(new String(download.getBody(), StandardCharsets.UTF_8).startsWith("%PDF"));
+  }
+
+  @Test
+  void download_asJson_returnsSignedDownloadUrl() {
+    var student = saveStudent("tr-dl-json-student");
+    saveGrade(student, saveExam(saveCourse("TR-DL-JSON-1", 5), 1.0, "2025-06-01T10:00:00Z"), 12.0);
+    generate(token("ADMIN"), student.getId(), 2025);
+    generationHandler.accept(producedEvents(TranscriptGenerationRequested.class).get(0));
+
+    var headers = headers(token("ADMIN"));
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+    var response =
+        restTemplate.exchange(
+            "/students/" + student.getId() + "/transcripts/2025",
+            HttpMethod.GET,
+            new HttpEntity<>(headers),
+            Map.class);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody().get("downloadUrl"));
+    assertTrue(response.getBody().get("downloadUrl").toString().contains("/transcripts/"));
   }
 
   @Test

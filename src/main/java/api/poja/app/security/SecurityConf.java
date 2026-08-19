@@ -87,6 +87,17 @@ public class SecurityConf {
                         "/students/*/transcripts/*",
                         "/students/*/transcripts/*/status")
                     .hasAnyRole("ADMIN", "STUDENT")
+                    .requestMatchers(HttpMethod.POST, "/students/*/transcripts/generate")
+                    .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                    .requestMatchers(HttpMethod.GET, "/courses", "/courses/*/exams")
+                    .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "/students/*/grades",
+                        "/students/*/grades/*/history",
+                        "/students/*/average",
+                        "/students/*/average/global")
+                    .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

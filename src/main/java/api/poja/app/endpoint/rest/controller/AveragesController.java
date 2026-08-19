@@ -21,9 +21,7 @@ public class AveragesController {
 
   @GetMapping("/students/{studentId}/average")
   public AnnualAverage getAnnualAverage(
-      @PathVariable UUID studentId,
-      @RequestParam(required = false) Integer year,
-      Authentication authentication) {
+      @PathVariable UUID studentId, @RequestParam Integer year, Authentication authentication) {
     return averageMapper.toRest(averagesService.getAnnualAverage(studentId, year, authentication));
   }
 
