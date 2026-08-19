@@ -297,7 +297,15 @@ class UiIT extends FacadeIT {
 
   private ResponseEntity<String> login(String username, String password) {
     var loginPage = restTemplate.getForEntity("/ui/login", String.class);
-    assertEquals(HttpStatus.OK, loginPage.getStatusCode());
+    if (loginPage.getStatusCode() != HttpStatus.OK) {
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      loginPage = restTemplate.getForEntity("/ui/login", String.class);
+    }
+    assertEquals(HttpStatus.OK, loginPage.getStatusCode(), "GET /ui/login must render login page");
     var xsrfCookie =
         loginPage.getHeaders().get(HttpHeaders.SET_COOKIE).stream()
             .filter(cookie -> cookie.startsWith("XSRF-TOKEN="))
