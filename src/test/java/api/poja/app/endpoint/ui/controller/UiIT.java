@@ -303,7 +303,9 @@ class UiIT extends FacadeIT {
         "login page: status="
             + loginPage.getStatusCode()
             + " location="
-            + loginPage.getHeaders().getLocation());
+            + loginPage.getHeaders().getLocation()
+            + " setCookie="
+            + loginPage.getHeaders().get(HttpHeaders.SET_COOKIE));
     var xsrfCookie =
         loginPage.getHeaders().get(HttpHeaders.SET_COOKIE).stream()
             .filter(cookie -> cookie.startsWith("XSRF-TOKEN="))
