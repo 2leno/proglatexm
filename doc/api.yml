@@ -24,7 +24,6 @@ tags:
 
 paths:
 
-  # ---------- AUTH ----------
   /auth/login:
     post:
       tags: [Auth]
@@ -58,7 +57,6 @@ paths:
         "401":
           description: Invalid credentials
 
-  # ---------- TRANSCRIPTS ----------
   /students/{studentId}/transcripts/generate:
     post:
       tags: [Transcripts]
@@ -176,7 +174,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/TranscriptStatus"
 
-  # ---------- GRADUATES ----------
   /promotions/{promotionId}/graduates/generate:
     post:
       tags: [Graduates]
@@ -237,7 +234,6 @@ paths:
                 items:
                   $ref: "#/components/schemas/Graduate"
 
-  # ---------- COURSES ----------
   /courses:
     get:
       tags: [Courses]
@@ -355,7 +351,6 @@ paths:
         "200":
           description: Teachers assigned
 
-  # ---------- GROUPS ----------
   /groups:
     get:
       tags: [Groups]
@@ -430,7 +425,6 @@ paths:
                 items:
                   $ref: "#/components/schemas/StudentGroupPeriod"
 
-  # ---------- GRADES ----------
   /courses/{courseId}/exams/{examId}/grades:
     post:
       tags: [Grades]
@@ -546,7 +540,6 @@ paths:
         "403":
           description: A teacher may only modify their own courses
 
-  # ---------- STUDENTS ----------
   /students:
     post:
       tags: [Students]
@@ -610,7 +603,6 @@ paths:
                   average:
                     type: number
 
-  # ---------- PROMOTIONS (Thymeleaf) ----------
   /promotions:
     get:
       tags: [Promotions]
