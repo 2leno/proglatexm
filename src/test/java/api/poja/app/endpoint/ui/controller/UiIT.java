@@ -24,10 +24,8 @@ import api.poja.app.repository.model.JPromotion;
 import api.poja.app.repository.model.JStudent;
 import api.poja.app.repository.model.JStudentGroupPeriod;
 import api.poja.app.repository.model.JTeacher;
-import api.poja.app.security.SecurityConf;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,13 +39,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 
 class UiIT extends FacadeIT {
 
@@ -67,8 +60,6 @@ class UiIT extends FacadeIT {
   @Autowired JExamRepository examRepository;
   @Autowired JGradeRepository gradeRepository;
   @Autowired BCryptPasswordEncoder passwordEncoder;
-  @Autowired HandlerMappingIntrospector handlerMappingIntrospector;
-  @Autowired List<SecurityFilterChain> securityFilterChains;
 
   @BeforeEach
   void prepare() {
@@ -312,17 +303,7 @@ class UiIT extends FacadeIT {
         "login page: status="
             + loginPage.getStatusCode()
             + " location="
-            + loginPage.getHeaders().getLocation()
-            + " setCookie="
-            + loginPage.getHeaders().get(HttpHeaders.SET_COOKIE)
-            + " xdiag="
-            + loginPage.getHeaders().getFirst("X-Diag")
-            + " xerr="
-            + loginPage.getHeaders().getFirst("X-Err")
-            + " fullStack="
-            + SecurityConf.lastAuthFailureStack
-            + " "
-            + chainDiagnostics());
+            + loginPage.getHeaders().getLocation());
     var xsrfCookie =
         loginPage.getHeaders().get(HttpHeaders.SET_COOKIE).stream()
             .filter(cookie -> cookie.startsWith("XSRF-TOKEN="))
@@ -348,28 +329,6 @@ class UiIT extends FacadeIT {
         .map(cookie -> cookie.split(";")[0].substring("UI_TOKEN=".length()))
         .findFirst()
         .orElseThrow();
-  }
-
-  private String chainDiagnostics() {
-    var mock = new MockHttpServletRequest("GET", "/ui/login");
-    var sb = new StringBuilder();
-    sb.append("antMatch=").append(new AntPathRequestMatcher("/ui/login").matches(mock));
-    try {
-      sb.append(" mvcMatch=")
-          .append(new MvcRequestMatcher(handlerMappingIntrospector, "/ui/login").matches(mock));
-    } catch (Exception e) {
-      sb.append(" mvcMatchError=").append(e);
-    }
-    int i = 0;
-    for (var chain : securityFilterChains) {
-      sb.append(" chain")
-          .append(i++)
-          .append("=")
-          .append(chain.getClass().getSimpleName())
-          .append(".matches=")
-          .append(chain.matches(mock));
-    }
-    return sb.toString();
   }
 
   private ResponseEntity<String> getWithToken(String path, String token) {

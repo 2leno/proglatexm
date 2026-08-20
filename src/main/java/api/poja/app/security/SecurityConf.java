@@ -1,13 +1,8 @@
 package api.poja.app.security;
 
-import static java.util.stream.Collectors.joining;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.Filter;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -22,21 +17,16 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @AllArgsConstructor
 public class SecurityConf {
-
-  public static volatile String lastAuthFailureStack;
 
   private final JwtAuthFilter jwtAuthFilter;
   private final UiAuthFilter uiAuthFilter;
@@ -58,79 +48,18 @@ public class SecurityConf {
             exception ->
                 exception
                     .authenticationEntryPoint(
-                        (request, response, authException) -> {
-                          ((HttpServletResponse) response)
-                              .setHeader(
-                                  "X-Err",
-                                  "AE "
-                                      + authException.getClass().getSimpleName()
-                                      + " uri="
-                                      + request.getRequestURI()
-                                      + " dispatch="
-                                      + request.getDispatcherType()
-                                      + " fwdFrom="
-                                      + request.getAttribute("jakarta.servlet.forward.request_uri")
-                                      + " viewAttr="
-                                      + request.getAttribute(
-                                          "org.springframework.web.servlet.View.name")
-                                      + " auth="
-                                      + SecurityContextHolder.getContext().getAuthentication());
-                          if (lastAuthFailureStack == null) {
-                            lastAuthFailureStack =
-                                Arrays.stream(Thread.currentThread().getStackTrace())
-                                    .map(StackTraceElement::toString)
-                                    .collect(joining("\n"));
-                          }
-                          response.sendRedirect("/ui/login");
-                        })
+                        (request, response, authException) -> response.sendRedirect("/ui/login"))
                     .accessDeniedHandler(
-                        (request, response, accessDeniedException) -> {
-                          ((HttpServletResponse) response)
-                              .setHeader(
-                                  "X-Err",
-                                  "ADE "
-                                      + accessDeniedException.getClass().getSimpleName()
-                                      + " uri="
-                                      + request.getRequestURI()
-                                      + " dispatch="
-                                      + request.getDispatcherType()
-                                      + " auth="
-                                      + SecurityContextHolder.getContext().getAuthentication());
-                          response.sendRedirect("/ui/login");
-                        }))
+                        (request, response, accessDeniedException) ->
+                            response.sendRedirect("/ui/login")))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/ui/login", "/ui/ui/login", "/ui/css/**", "/ui/error")
+                auth.requestMatchers("/ui/login", "/ui/css/**", "/ui/error")
                     .permitAll()
                     .anyRequest()
                     .hasRole("ADMIN"))
-        .addFilterBefore(debugUiFilter(), CsrfFilter.class)
         .addFilterBefore(uiAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .build();
-  }
-
-  private Filter debugUiFilter() {
-    return (request, response, chain) -> {
-      if (request instanceof HttpServletRequest httpRequest) {
-        var httpResponse = (HttpServletResponse) response;
-        if (httpRequest.getRequestURI().equals("/ui/login")
-            && !httpResponse.containsHeader("X-Diag")) {
-          httpResponse.setHeader(
-              "X-Diag",
-              "sp="
-                  + httpRequest.getServletPath()
-                  + " pi="
-                  + httpRequest.getPathInfo()
-                  + " uri="
-                  + httpRequest.getRequestURI()
-                  + " ctx="
-                  + httpRequest.getContextPath()
-                  + " ant="
-                  + new AntPathRequestMatcher("/ui/login").matches(httpRequest));
-        }
-      }
-      chain.doFilter(request, response);
-    };
   }
 
   @Bean
