@@ -78,11 +78,11 @@ class UiIT extends FacadeIT {
   }
 
   @Test
-  void login_redirectsToPromotions_andAllowsBrowsing() {
+  void login_succeeds_showsSuccess_andAllowsBrowsing() {
     var login = login(USERNAME, PASSWORD);
 
-    assertEquals(HttpStatus.FOUND, login.getStatusCode());
-    assertEquals("/ui/promotions", login.getHeaders().getLocation().getPath());
+    assertEquals(HttpStatus.OK, login.getStatusCode());
+    assertTrue(login.getBody().contains("Signed in successfully"));
 
     var token = uiToken(login);
     var page = getWithToken("/ui/promotions", token);

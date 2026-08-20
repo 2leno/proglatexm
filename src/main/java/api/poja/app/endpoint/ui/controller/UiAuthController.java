@@ -41,7 +41,8 @@ public class UiAuthController {
       cookie.setPath("/ui");
       cookie.setMaxAge(60 * 60);
       response.addCookie(cookie);
-      return "redirect:/ui/promotions";
+      model.addAttribute("success", true);
+      return "ui/login";
     } catch (ApiException e) {
       model.addAttribute("error", "Invalid credentials");
       return "ui/login";
