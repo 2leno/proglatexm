@@ -72,7 +72,7 @@ public class SecurityConf {
                                       + request.getAttribute(
                                           "org.springframework.web.servlet.View.name")
                                       + " stk="
-                                      + stackOf(28)
+                                      + stackOf(80)
                                       + " auth="
                                       + SecurityContextHolder.getContext().getAuthentication());
                           response.sendRedirect("/ui/login");
@@ -109,7 +109,7 @@ public class SecurityConf {
             .limit(frames)
             .map(StackTraceElement::toString)
             .collect(joining(" <- "));
-    return stack.length() > 4000 ? stack.substring(0, 4000) : stack;
+    return stack.length() > 7000 ? stack.substring(0, 7000) : stack;
   }
 
   private Filter debugUiFilter() {
