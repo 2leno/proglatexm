@@ -80,6 +80,9 @@ public class SecurityConf {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
+                        "/js/**",
+                        "/css/**",
+                        "/favicon.ico",
                         "/ping",
                         "/health/**",
                         "/swagger-ui/**",
