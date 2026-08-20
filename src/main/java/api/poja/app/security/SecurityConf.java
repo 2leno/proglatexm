@@ -54,7 +54,7 @@ public class SecurityConf {
                             response.sendRedirect("/ui/login")))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/ui/login", "/ui/css/**", "/ui/error")
+                auth.requestMatchers("/ui/login", "/ui/css/**", "/ui/img/**", "/ui/error")
                     .permitAll()
                     .anyRequest()
                     .hasRole("ADMIN"))
