@@ -24,6 +24,7 @@ import api.poja.app.repository.model.JPromotion;
 import api.poja.app.repository.model.JStudent;
 import api.poja.app.repository.model.JStudentGroupPeriod;
 import api.poja.app.repository.model.JTeacher;
+import api.poja.app.security.SecurityConf;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -318,6 +319,8 @@ class UiIT extends FacadeIT {
             + loginPage.getHeaders().getFirst("X-Diag")
             + " xerr="
             + loginPage.getHeaders().getFirst("X-Err")
+            + " fullStack="
+            + SecurityConf.lastAuthFailureStack
             + " "
             + chainDiagnostics());
     var xsrfCookie =

@@ -36,6 +36,8 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @AllArgsConstructor
 public class SecurityConf {
 
+  public static volatile String lastAuthFailureStack;
+
   private final JwtAuthFilter jwtAuthFilter;
   private final UiAuthFilter uiAuthFilter;
   private final ObjectMapper objectMapper;
@@ -71,10 +73,14 @@ public class SecurityConf {
                                       + " viewAttr="
                                       + request.getAttribute(
                                           "org.springframework.web.servlet.View.name")
-                                      + " stk="
-                                      + stackOf(80)
                                       + " auth="
                                       + SecurityContextHolder.getContext().getAuthentication());
+                          if (lastAuthFailureStack == null) {
+                            lastAuthFailureStack =
+                                Arrays.stream(Thread.currentThread().getStackTrace())
+                                    .map(StackTraceElement::toString)
+                                    .collect(joining("\n"));
+                          }
                           response.sendRedirect("/ui/login");
                         })
                     .accessDeniedHandler(
@@ -101,15 +107,6 @@ public class SecurityConf {
         .addFilterBefore(debugUiFilter(), CsrfFilter.class)
         .addFilterBefore(uiAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .build();
-  }
-
-  private String stackOf(int frames) {
-    var stack =
-        Arrays.stream(Thread.currentThread().getStackTrace())
-            .limit(frames)
-            .map(StackTraceElement::toString)
-            .collect(joining(" <- "));
-    return stack.length() > 7000 ? stack.substring(0, 7000) : stack;
   }
 
   private Filter debugUiFilter() {
