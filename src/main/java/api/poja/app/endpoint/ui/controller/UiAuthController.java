@@ -20,7 +20,8 @@ public class UiAuthController {
   private final AuthService authService;
 
   @GetMapping("/ui/login")
-  public String login() {
+  public String login(Model model) {
+    model.addAttribute("success", false);
     return "ui/login";
   }
 
@@ -33,6 +34,7 @@ public class UiAuthController {
     try {
       var login = authService.login(username, password);
       if (login.role() != Role.ADMIN) {
+        model.addAttribute("success", false);
         model.addAttribute("error", "Only ADMIN accounts can access this interface");
         return "ui/login";
       }
@@ -44,6 +46,7 @@ public class UiAuthController {
       model.addAttribute("success", true);
       return "ui/login";
     } catch (ApiException e) {
+      model.addAttribute("success", false);
       model.addAttribute("error", "Invalid credentials");
       return "ui/login";
     }
