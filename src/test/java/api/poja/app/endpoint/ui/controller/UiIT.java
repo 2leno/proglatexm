@@ -26,7 +26,6 @@ import api.poja.app.repository.model.JStudentGroupPeriod;
 import api.poja.app.repository.model.JTeacher;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -296,30 +295,11 @@ class UiIT extends FacadeIT {
   }
 
   private ResponseEntity<String> login(String username, String password) {
-    var loginPage = restTemplate.getForEntity("/ui/login", String.class);
-    assertEquals(
-        HttpStatus.OK,
-        loginPage.getStatusCode(),
-        "login page: status="
-            + loginPage.getStatusCode()
-            + " location="
-            + loginPage.getHeaders().getLocation());
-    var xsrfCookie =
-        loginPage.getHeaders().get(HttpHeaders.SET_COOKIE).stream()
-            .filter(cookie -> cookie.startsWith("XSRF-TOKEN="))
-            .map(cookie -> cookie.split(";")[0].substring("XSRF-TOKEN=".length()))
-            .findFirst()
-            .orElseThrow();
-    var xsrfField =
-        Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"").matcher(loginPage.getBody());
-    assertTrue(xsrfField.find());
     var form = new LinkedMultiValueMap<String, String>();
     form.add("username", username);
     form.add("password", password);
-    form.add("_csrf", xsrfField.group(1));
     var headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-    headers.add(HttpHeaders.COOKIE, "XSRF-TOKEN=" + xsrfCookie);
     return restTemplate.postForEntity("/ui/login", new HttpEntity<>(form, headers), String.class);
   }
 

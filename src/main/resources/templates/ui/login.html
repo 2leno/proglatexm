@@ -19,7 +19,6 @@
 
       <section class="login-card" th:if="${!success}">
         <form th:action="@{/ui/login}" method="post" class="login-form">
-          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
           <p class="paragraph-welcome">WELCOME TO</p>
           <h1>HEI Admin</h1>
 
