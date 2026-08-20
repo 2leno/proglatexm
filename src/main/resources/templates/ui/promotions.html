@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Promotions - proglatexm</title>
+    <link rel="stylesheet" th:href="@{/ui/css/proglatexm.css}" />
+  </head>
+  <body>
+    <header th:replace="~{ui/layout :: header}"></header>
+    <main class="container">
+      <h1>Promotions</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Year</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="p : ${promotions}">
+            <td>
+              <a th:href="@{/ui/promotions/{id}(id=${p.id()})}" th:text="${p.name()}">Promotion</a>
+            </td>
+            <td th:text="${p.year()}">2026</td>
+            <td>
+              <a
+                th:href="@{/ui/promotions/{id}/graduates(id=${p.id()})}"
+                class="btn"
+                >Graduates</a
+              >
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+  </body>
+</html>

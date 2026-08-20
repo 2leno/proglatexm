@@ -7,7 +7,7 @@ create table if not exists student
     password varchar not null,
     first_name varchar not null,
     last_name varchar not null,
-    reference varchar not null
-        constraint student_reference_key unique,
+    student_code varchar not null
+        constraint student_student_code_key unique,
     parcours varchar not null
 );

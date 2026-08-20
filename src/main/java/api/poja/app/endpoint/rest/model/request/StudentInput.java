@@ -5,4 +5,10 @@ import lombok.Builder;
 
 @Builder
 public record StudentInput(
-    String firstName, String lastName, String reference, Parcours parcours) {}
+    String firstName,
+    String lastName,
+    String reference,
+    Parcours parcours,
+    String username,
+    String password,
+    String email) {}

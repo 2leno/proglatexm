@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>HEI Admin</title>
+    <link rel="stylesheet" th:href="@{/ui/css/proglatexm.css}" />
+  </head>
+  <body>
+    <header th:fragment="header" class="site-header">
+      <a th:href="@{/ui/promotions}" class="brand">HEI Admin</a>
+      <a th:href="@{/ui/logout}" class="btn">Logout</a>
+    </header>
+  </body>
+</html>

@@ -46,4 +46,7 @@ public class JStudent {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private Parcours parcours;
+
+  @Column(nullable = false, unique = true)
+  private String email;
 }

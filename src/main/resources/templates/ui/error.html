@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Error - proglatexm</title>
+    <link rel="stylesheet" th:href="@{/ui/css/proglatexm.css}" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Something went wrong</h1>
+      <p th:text="${message}">Error</p>
+      <a th:href="@{/ui/promotions}" class="btn">Back to promotions</a>
+    </main>
+  </body>
+</html>

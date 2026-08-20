@@ -5,4 +5,9 @@ import lombok.Builder;
 
 @Builder
 public record Student(
-    String id, String firstName, String lastName, String reference, Parcours parcours) {}
+    String id,
+    String firstName,
+    String lastName,
+    String reference,
+    Parcours parcours,
+    String email) {}

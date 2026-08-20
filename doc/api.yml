@@ -24,7 +24,6 @@ tags:
 
 paths:
 
-  # ---------- AUTH ----------
   /auth/login:
     post:
       tags: [Auth]
@@ -58,7 +57,6 @@ paths:
         "401":
           description: Invalid credentials
 
-  # ---------- TRANSCRIPTS ----------
   /students/{studentId}/transcripts/generate:
     post:
       tags: [Transcripts]
@@ -176,7 +174,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/TranscriptStatus"
 
-  # ---------- GRADUATES ----------
   /promotions/{promotionId}/graduates/generate:
     post:
       tags: [Graduates]
@@ -237,7 +234,6 @@ paths:
                 items:
                   $ref: "#/components/schemas/Graduate"
 
-  # ---------- COURSES ----------
   /courses:
     get:
       tags: [Courses]
@@ -355,7 +351,6 @@ paths:
         "200":
           description: Teachers assigned
 
-  # ---------- GROUPS ----------
   /groups:
     get:
       tags: [Groups]
@@ -430,7 +425,6 @@ paths:
                 items:
                   $ref: "#/components/schemas/StudentGroupPeriod"
 
-  # ---------- GRADES ----------
   /courses/{courseId}/exams/{examId}/grades:
     post:
       tags: [Grades]
@@ -546,7 +540,6 @@ paths:
         "403":
           description: A teacher may only modify their own courses
 
-  # ---------- STUDENTS ----------
   /students:
     post:
       tags: [Students]
@@ -562,6 +555,10 @@ paths:
       responses:
         "201":
           description: Student created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
 
   /students/{studentId}/average:
     get:
@@ -606,7 +603,6 @@ paths:
                   average:
                     type: number
 
-  # ---------- PROMOTIONS (Thymeleaf) ----------
   /promotions:
     get:
       tags: [Promotions]
@@ -836,9 +832,28 @@ components:
           type: string
           format: date-time
 
+    Student:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        reference:
+          type: string
+          description: Student reference, e.g. STD24432 (STDyyNNN)
+        parcours:
+          $ref: "#/components/schemas/Parcours"
+        email:
+          type: string
+          format: email
+
     StudentInput:
       type: object
-      required: [firstName, lastName, reference, parcours]
+      required: [firstName, lastName, reference, parcours, username, password, email]
       properties:
         firstName:
           type: string
@@ -849,6 +864,16 @@ components:
           description: Student reference, e.g. STD24432 (STDyyNNN)
         parcours:
           $ref: "#/components/schemas/Parcours"
+        username:
+          type: string
+          description: Login username of the created student, must be unique
+        password:
+          type: string
+          description: Login password of the created student, stored as BCrypt hash
+        email:
+          type: string
+          format: email
+          description: Recipient email for grade transcripts, must be unique
 
     Promotion:
       type: object

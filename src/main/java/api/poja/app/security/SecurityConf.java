@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,8 +17,10 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 @Configuration
 @EnableWebSecurity
@@ -26,9 +29,41 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConf {
 
   private final JwtAuthFilter jwtAuthFilter;
+  private final UiAuthFilter uiAuthFilter;
   private final ObjectMapper objectMapper;
 
   @Bean
+  public BCryptPasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
+
+  @Bean
+  @Order(1)
+  public SecurityFilterChain uiSecurityFilterChain(HttpSecurity http) throws Exception {
+    return http.securityMatcher("/ui/**")
+        .csrf(csrf -> csrf.csrfTokenRepository(new CookieCsrfTokenRepository()))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .exceptionHandling(
+            exception ->
+                exception
+                    .authenticationEntryPoint(
+                        (request, response, authException) -> response.sendRedirect("/ui/login"))
+                    .accessDeniedHandler(
+                        (request, response, accessDeniedException) ->
+                            response.sendRedirect("/ui/login?error=csrf")))
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers("/ui/login", "/ui/css/**", "/ui/img/**", "/ui/error")
+                    .permitAll()
+                    .anyRequest()
+                    .hasRole("ADMIN"))
+        .addFilterBefore(uiAuthFilter, UsernamePasswordAuthenticationFilter.class)
+        .build();
+  }
+
+  @Bean
+  @Order(2)
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     return http.csrf(csrf -> csrf.disable())
         .sessionManagement(
@@ -84,6 +119,17 @@ public class SecurityConf {
                         "/students/*/transcripts/*",
                         "/students/*/transcripts/*/status")
                     .hasAnyRole("ADMIN", "STUDENT")
+                    .requestMatchers(HttpMethod.POST, "/students/*/transcripts/generate")
+                    .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                    .requestMatchers(HttpMethod.GET, "/courses", "/courses/*/exams")
+                    .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "/students/*/grades",
+                        "/students/*/grades/*/history",
+                        "/students/*/average",
+                        "/students/*/average/global")
+                    .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

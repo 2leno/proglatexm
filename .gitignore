@@ -1,5 +1,4 @@
 HELP.md
-AGENTS.md
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
@@ -40,8 +39,7 @@ out/
 .aws-sam
 **.toml
 
-# Local secrets (never commit plaintext credentials)
-secrets/
-
 ### Mac OS ###
 .DS_Store
+secrets/
+AGENTS.md

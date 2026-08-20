@@ -7,6 +7,9 @@ import api.poja.app.conf.FacadeIT;
 import api.poja.app.endpoint.event.EventProducer;
 import api.poja.app.security.JwtTokenProvider;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -15,7 +18,9 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 
 class SecurityIT extends FacadeIT {
 
@@ -23,6 +28,11 @@ class SecurityIT extends FacadeIT {
 
   @Autowired TestRestTemplate restTemplate;
   @Autowired JwtTokenProvider jwtTokenProvider;
+
+  @BeforeEach
+  void disableStreaming() {
+    restTemplate.getRestTemplate().setRequestFactory(new JdkClientHttpRequestFactory());
+  }
 
   @Test
   void authenticatedEndpoint_withoutToken_returnsUnauthorized() {
@@ -50,9 +60,15 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void loginEndpoint_withoutToken_returnsNotFound() {
-    var response = restTemplate.postForEntity("/auth/login", null, String.class);
-    assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+  void loginEndpoint_withoutToken_returnsUnauthorized() {
+    var headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    var response =
+        restTemplate.postForEntity(
+            "/auth/login",
+            new HttpEntity<>(Map.of("username", "admin", "password", "wrong"), headers),
+            String.class);
+    assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
   }
 
   @Test
@@ -70,17 +86,17 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void createCourse_asAdmin_returnsNotFound() {
+  void createCourse_asAdmin_withoutBody_returnsBadRequest() {
     assertEquals(
-        HttpStatus.NOT_FOUND,
+        HttpStatus.BAD_REQUEST,
         exchangeWithBearer(token("ADMIN"), "/courses", HttpMethod.POST).getStatusCode());
   }
 
   @Test
-  void listGroups_asTeacher_returnsNotFound() {
-    assertEquals(
-        HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("TEACHER"), "/groups", HttpMethod.GET).getStatusCode());
+  void listGroups_asTeacher_isAuthorized() {
+    var status = exchangeWithBearer(token("TEACHER"), "/groups", HttpMethod.GET).getStatusCode();
+    assertNotEquals(HttpStatus.FORBIDDEN, status);
+    assertNotEquals(HttpStatus.UNAUTHORIZED, status);
   }
 
   @Test
@@ -91,10 +107,19 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void groupHistory_asStudent_returnsNotFound() {
-    assertEquals(
-        HttpStatus.NOT_FOUND,
+  void groupHistory_asStudent_isAuthorized() {
+    var status =
         exchangeWithBearer(token("STUDENT"), "/students/1/groups/history", HttpMethod.GET)
+            .getStatusCode();
+    assertNotEquals(HttpStatus.FORBIDDEN, status);
+    assertNotEquals(HttpStatus.UNAUTHORIZED, status);
+  }
+
+  @Test
+  void assignGroup_asTeacher_returnsForbidden() {
+    assertEquals(
+        HttpStatus.FORBIDDEN,
+        exchangeWithBearer(token("TEACHER"), "/students/1/groups", HttpMethod.POST)
             .getStatusCode());
   }
 
@@ -123,18 +148,24 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void transcriptDownload_asStudent_returnsNotFound() {
+  void transcriptDownload_asStudentForNonOwnedStudent_returnsForbidden() {
     assertEquals(
-        HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("STUDENT"), "/students/1/transcripts/2023", HttpMethod.GET)
+        HttpStatus.FORBIDDEN,
+        exchangeWithBearer(
+                token("STUDENT"),
+                "/students/" + UUID.randomUUID() + "/transcripts/2023",
+                HttpMethod.GET)
             .getStatusCode());
   }
 
   @Test
-  void transcriptsStatus_asStudent_returnsNotFound() {
+  void transcriptsStatus_asStudentForNonOwnedStudent_returnsForbidden() {
     assertEquals(
-        HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("STUDENT"), "/students/1/transcripts/2023/status", HttpMethod.GET)
+        HttpStatus.FORBIDDEN,
+        exchangeWithBearer(
+                token("STUDENT"),
+                "/students/" + UUID.randomUUID() + "/transcripts/2023/status",
+                HttpMethod.GET)
             .getStatusCode());
   }
 
@@ -146,10 +177,10 @@ class SecurityIT extends FacadeIT {
   }
 
   @Test
-  void listPromotions_asAdmin_returnsNotFound() {
-    assertEquals(
-        HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("ADMIN"), "/promotions", HttpMethod.GET).getStatusCode());
+  void listPromotions_asAdmin_isAuthorized() {
+    var status = exchangeWithBearer(token("ADMIN"), "/promotions", HttpMethod.GET).getStatusCode();
+    assertNotEquals(HttpStatus.FORBIDDEN, status);
+    assertNotEquals(HttpStatus.UNAUTHORIZED, status);
   }
 
   @Test
@@ -164,7 +195,10 @@ class SecurityIT extends FacadeIT {
   void graduates_asAdmin_returnsNotFound() {
     assertEquals(
         HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("ADMIN"), "/promotions/1/graduates/download", HttpMethod.GET)
+        exchangeWithBearer(
+                token("ADMIN"),
+                "/promotions/" + UUID.randomUUID() + "/graduates/download",
+                HttpMethod.GET)
             .getStatusCode());
   }
 
@@ -172,8 +206,41 @@ class SecurityIT extends FacadeIT {
   void courseAverages_asTeacher_returnsNotFound() {
     assertEquals(
         HttpStatus.NOT_FOUND,
-        exchangeWithBearer(token("TEACHER"), "/students/1/average/global", HttpMethod.GET)
+        exchangeWithBearer(
+                token("TEACHER"),
+                "/students/" + UUID.randomUUID() + "/average/global",
+                HttpMethod.GET)
             .getStatusCode());
+  }
+
+  @Test
+  void recordGrade_asStudent_returnsForbidden() {
+    assertEquals(
+        HttpStatus.FORBIDDEN,
+        exchangeWithBearer(token("STUDENT"), "/courses/1/exams/1/grades", HttpMethod.POST)
+            .getStatusCode());
+  }
+
+  @Test
+  void modifyGrade_asStudent_returnsForbidden() {
+    assertEquals(
+        HttpStatus.FORBIDDEN,
+        exchangeWithBearer(token("STUDENT"), "/grades/1", HttpMethod.PUT).getStatusCode());
+  }
+
+  @Test
+  void studentGrades_asTeacher_isAuthorized() {
+    var status =
+        exchangeWithBearer(token("TEACHER"), "/students/1/grades", HttpMethod.GET).getStatusCode();
+    assertNotEquals(HttpStatus.FORBIDDEN, status);
+    assertNotEquals(HttpStatus.UNAUTHORIZED, status);
+  }
+
+  @Test
+  void listCourses_asStudent_isAuthorized() {
+    var status = exchangeWithBearer(token("STUDENT"), "/courses", HttpMethod.GET).getStatusCode();
+    assertNotEquals(HttpStatus.FORBIDDEN, status);
+    assertNotEquals(HttpStatus.UNAUTHORIZED, status);
   }
 
   private String token(String role) {
