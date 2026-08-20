@@ -55,7 +55,7 @@ public class UiAuthController {
     }
   }
 
-  @PostMapping("/ui/logout")
+  @GetMapping("/ui/logout")
   public String logout(HttpServletResponse response) {
     var cookie = new Cookie(UiAuthFilter.UI_TOKEN_COOKIE, "");
     cookie.setHttpOnly(true);

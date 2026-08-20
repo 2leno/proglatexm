@@ -8,9 +8,7 @@
   <body>
     <header th:fragment="header" class="site-header">
       <a th:href="@{/ui/promotions}" class="brand">HEI Admin</a>
-      <form th:action="@{/ui/logout}" method="post" class="logout-form">
-        <button type="submit" class="btn">Logout</button>
-      </form>
+      <a th:href="@{/ui/logout}" class="btn">Logout</a>
     </header>
   </body>
 </html>
