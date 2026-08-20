@@ -19,7 +19,7 @@ public class UiAuthController {
 
   private final AuthService authService;
 
-  @GetMapping({"/ui/login", "/ui/ui/login"})
+  @GetMapping("/ui/login")
   public String login() {
     return "ui/login";
   }
