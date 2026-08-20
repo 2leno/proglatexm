@@ -1,10 +1,13 @@
 package api.poja.app.security;
 
+import static java.util.stream.Collectors.joining;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.Filter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -68,6 +71,8 @@ public class SecurityConf {
                                       + " viewAttr="
                                       + request.getAttribute(
                                           "org.springframework.web.servlet.View.name")
+                                      + " stk="
+                                      + stackOf(28)
                                       + " auth="
                                       + SecurityContextHolder.getContext().getAuthentication());
                           response.sendRedirect("/ui/login");
@@ -96,6 +101,15 @@ public class SecurityConf {
         .addFilterBefore(debugUiFilter(), CsrfFilter.class)
         .addFilterBefore(uiAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .build();
+  }
+
+  private String stackOf(int frames) {
+    var stack =
+        Arrays.stream(Thread.currentThread().getStackTrace())
+            .limit(frames)
+            .map(StackTraceElement::toString)
+            .collect(joining(" <- "));
+    return stack.length() > 4000 ? stack.substring(0, 4000) : stack;
   }
 
   private Filter debugUiFilter() {
