@@ -316,6 +316,8 @@ class UiIT extends FacadeIT {
             + loginPage.getHeaders().get(HttpHeaders.SET_COOKIE)
             + " xdiag="
             + loginPage.getHeaders().getFirst("X-Diag")
+            + " xerr="
+            + loginPage.getHeaders().getFirst("X-Err")
             + " "
             + chainDiagnostics());
     var xsrfCookie =

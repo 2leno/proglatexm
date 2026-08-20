@@ -19,6 +19,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -52,10 +53,35 @@ public class SecurityConf {
             exception ->
                 exception
                     .authenticationEntryPoint(
-                        (request, response, authException) -> response.sendRedirect("/ui/login"))
+                        (request, response, authException) -> {
+                          ((HttpServletResponse) response)
+                              .setHeader(
+                                  "X-Err",
+                                  "AE "
+                                      + authException.getClass().getSimpleName()
+                                      + " uri="
+                                      + request.getRequestURI()
+                                      + " dispatch="
+                                      + request.getDispatcherType()
+                                      + " auth="
+                                      + SecurityContextHolder.getContext().getAuthentication());
+                          response.sendRedirect("/ui/login");
+                        })
                     .accessDeniedHandler(
-                        (request, response, accessDeniedException) ->
-                            response.sendRedirect("/ui/login")))
+                        (request, response, accessDeniedException) -> {
+                          ((HttpServletResponse) response)
+                              .setHeader(
+                                  "X-Err",
+                                  "ADE "
+                                      + accessDeniedException.getClass().getSimpleName()
+                                      + " uri="
+                                      + request.getRequestURI()
+                                      + " dispatch="
+                                      + request.getDispatcherType()
+                                      + " auth="
+                                      + SecurityContextHolder.getContext().getAuthentication());
+                          response.sendRedirect("/ui/login");
+                        }))
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers("/ui/login", "/ui/css/**", "/ui/error")
