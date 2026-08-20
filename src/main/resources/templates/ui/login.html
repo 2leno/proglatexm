@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-store" />
     <title>Login - HEI Admin</title>
     <link rel="stylesheet" th:href="@{/ui/css/login.css}" />
   </head>
@@ -61,7 +62,12 @@
       </section>
     </div>
 
-    <script th:if="${!success}" th:inline="javascript">
+    <script th:if="${!success}">
+      window.addEventListener("pageshow", function (event) {
+        if (event.persisted) {
+          window.location.reload();
+        }
+      });
       var form = document.querySelector("#password").closest(".login-form");
       var toggle = document.querySelector(".toggle-password");
       toggle.addEventListener("click", function () {

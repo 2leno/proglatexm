@@ -20,8 +20,11 @@ public class UiAuthController {
   private final AuthService authService;
 
   @GetMapping("/ui/login")
-  public String login(Model model) {
+  public String login(@RequestParam(required = false) String error, Model model) {
     model.addAttribute("success", false);
+    if ("csrf".equals(error)) {
+      model.addAttribute("error", "Session expired, please try again");
+    }
     return "ui/login";
   }
 

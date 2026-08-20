@@ -51,7 +51,7 @@ public class SecurityConf {
                         (request, response, authException) -> response.sendRedirect("/ui/login"))
                     .accessDeniedHandler(
                         (request, response, accessDeniedException) ->
-                            response.sendRedirect("/ui/login")))
+                            response.sendRedirect("/ui/login?error=csrf")))
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers("/ui/login", "/ui/css/**", "/ui/img/**", "/ui/error")
