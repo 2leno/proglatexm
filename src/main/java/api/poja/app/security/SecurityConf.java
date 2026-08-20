@@ -100,7 +100,7 @@ public class SecurityConf {
                         }))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/ui/login", "/ui/css/**", "/ui/error")
+                auth.requestMatchers("/ui/login", "/ui/ui/login", "/ui/css/**", "/ui/error")
                     .permitAll()
                     .anyRequest()
                     .hasRole("ADMIN"))
