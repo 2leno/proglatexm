@@ -1,6 +1,8 @@
 package api.poja.app.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.Filter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -21,6 +23,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -58,8 +62,33 @@ public class SecurityConf {
                     .permitAll()
                     .anyRequest()
                     .hasRole("ADMIN"))
+        .addFilterBefore(debugUiFilter(), CsrfFilter.class)
         .addFilterBefore(uiAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .build();
+  }
+
+  private Filter debugUiFilter() {
+    return (request, response, chain) -> {
+      if (request instanceof HttpServletRequest httpRequest) {
+        var httpResponse = (HttpServletResponse) response;
+        if (httpRequest.getRequestURI().equals("/ui/login")
+            && !httpResponse.containsHeader("X-Diag")) {
+          httpResponse.setHeader(
+              "X-Diag",
+              "sp="
+                  + httpRequest.getServletPath()
+                  + " pi="
+                  + httpRequest.getPathInfo()
+                  + " uri="
+                  + httpRequest.getRequestURI()
+                  + " ctx="
+                  + httpRequest.getContextPath()
+                  + " ant="
+                  + new AntPathRequestMatcher("/ui/login").matches(httpRequest));
+        }
+      }
+      chain.doFilter(request, response);
+    };
   }
 
   @Bean
