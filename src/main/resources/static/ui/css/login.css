@@ -164,7 +164,7 @@ h1 {
 }
 
 .input-box.password-box input {
-  padding-right: 70px;
+  padding-right: 45px;
 }
 
 .input-box .field-icon {
@@ -180,7 +180,7 @@ h1 {
 
 .toggle-password {
   position: absolute;
-  right: 35px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   background: transparent;
