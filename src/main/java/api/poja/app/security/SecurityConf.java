@@ -63,6 +63,11 @@ public class SecurityConf {
                                       + request.getRequestURI()
                                       + " dispatch="
                                       + request.getDispatcherType()
+                                      + " fwdFrom="
+                                      + request.getAttribute("jakarta.servlet.forward.request_uri")
+                                      + " viewAttr="
+                                      + request.getAttribute(
+                                          "org.springframework.web.servlet.View.name")
                                       + " auth="
                                       + SecurityContextHolder.getContext().getAuthentication());
                           response.sendRedirect("/ui/login");
